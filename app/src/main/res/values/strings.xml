@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">TripLog</string>
+
+    <string name="rejestracja">Rejestracja</string>
+    <string name="username">Nazwa użytkownika</string>
+    <string name="email">Adres e-mail</string>
+    <string name="password">Hasło</string>
+    <string name="repeatedPassword">Powtórz hasło</string>
+
+    <string name="register">Zarejestruj się</string>
+    <string name="backToLogin">Powrót do logowania</string>
+
+    <string name="logowanie">Logowanie</string>
+    <string name="login">Zaloguj się</string>
+
+    <string name="noAccount">Nie masz konta? Zarejestruj się!</string>
+
+</resources>
