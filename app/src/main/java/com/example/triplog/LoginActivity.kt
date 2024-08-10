@@ -1,20 +1,32 @@
 package com.example.triplog
 
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -30,15 +43,47 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.triplog.data.LoginResult
 import com.example.triplog.ui.theme.TripLogTheme
+import com.example.triplog.ui.theme.errorContainerDark
+import com.example.triplog.ui.theme.onErrorContainerDark
+
+
+fun loginValidation(
+    email: String, password: String, context: Context,
+): Boolean {
+    if (email == "" || password == "") {
+        Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
+        return false
+    }
+    Toast.makeText(context, "Logowanie...", Toast.LENGTH_SHORT).show()
+    return true
+}
 
 @Composable
 fun LoginScreen(navController: NavController) {
+    val context: Context = LocalContext.current
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
+
+    var showDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.loginState) {
+        if (viewModel.loginState == LoginState.Error) {
+            showDialog = true
+        }
+    }
+
+    if (showDialog) {
+        ErrorDialog(viewModel.loginResult!!) {
+            showDialog = false
+            viewModel.loginState = LoginState.NotLogged
+        }
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -74,16 +119,16 @@ fun LoginScreen(navController: NavController) {
 
             EmailInput(
                 label = R.string.email,
-                value = email,
-                onValueChanged = { email = it },
+                value = viewModel.email,
+                onValueChanged = { viewModel.email = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
             PasswordInput(
                 label = R.string.password,
-                value = password,
-                onValueChanged = { password = it },
+                value = viewModel.password,
+                onValueChanged = { viewModel.password = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
@@ -95,7 +140,11 @@ fun LoginScreen(navController: NavController) {
             modifier = Modifier
                 .padding(10.dp)
         ) {
-            LoginButton()
+            LoginButton(
+                email = viewModel.email,
+                password = viewModel.password,
+                onLoginClick = { viewModel.login(context) }
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
             Divider(color = Color.DarkGray, thickness = 1.dp)
@@ -104,6 +153,94 @@ fun LoginScreen(navController: NavController) {
             NoAccount(navController)
         }
 
+    }
+}
+
+@Composable
+fun ErrorDialog(loginResult: LoginResult, onDissmiss: () -> Unit) {
+    Dialog(
+        onDismissRequest = { onDissmiss() },
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .border(color = Color.Black, width = 1.dp, shape = RoundedCornerShape(10.dp))
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = loginResult.message.toString(),
+                    fontSize = 24.sp,
+                    color = onErrorContainerDark
+                )
+                if (loginResult.errors!!.email!!.isNotEmpty()) {
+                    LazyColumn {
+                        items(loginResult.errors.email!!) { error ->
+                            ErrorDetails(error!!)
+                        }
+                    }
+                }
+                if (loginResult.errors.password!!.isNotEmpty()) {
+                    LazyColumn {
+                        items(loginResult.errors.password) { error ->
+                            ErrorDetails(error!!)
+                        }
+                    }
+                }
+                Button(
+                    onClick = { onDissmiss() },
+                    colors = ButtonDefaults.buttonColors(errorContainerDark)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.ok),
+                        color = onErrorContainerDark,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+        }
+    }
+}
+
+@Composable
+fun ErrorDetails(error: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = error,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
+
+@Composable
+fun LoginButton(email: String, password: String, onLoginClick: () -> Unit) {
+    val context: Context = LocalContext.current
+
+    Button(
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        onClick = {
+            if (loginValidation(email, password, context)) {
+                onLoginClick()
+            }
+        },
+        modifier = Modifier.width(220.dp)
+    ) {
+        Text(
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            text = stringResource(R.string.login),
+            fontSize = 18.sp,
+            modifier = Modifier
+                .padding(2.dp)
+        )
     }
 }
 
@@ -132,23 +269,6 @@ fun NoAccount(navController: NavController) {
             .padding(2.dp)
     )
 
-}
-
-@Composable
-fun LoginButton() {
-    Button(
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        onClick = { /*TODO*/ },
-        modifier = Modifier.width(220.dp)
-    ) {
-        Text(
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            text = stringResource(R.string.login),
-            fontSize = 18.sp,
-            modifier = Modifier
-                .padding(2.dp)
-        )
-    }
 }
 
 @Preview(showBackground = true)

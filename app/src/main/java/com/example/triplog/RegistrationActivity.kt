@@ -24,10 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +35,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.triplog.ui.theme.TripLogTheme
@@ -46,24 +43,21 @@ import com.example.triplog.ui.theme.TripLogTheme
 
 fun registrationValidation(
     username: String, email: String,
-    password: String, repeatedPassword: String, context:Context
+    password: String, repeatedPassword: String, context: Context,
 ): Boolean {
     if (username == "" || email == "" || password == "" || repeatedPassword == "") {
         Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
-        return true
+        return false
     }
     Toast.makeText(context, "Rejestracja...", Toast.LENGTH_SHORT).show()
-    return false
+    return true
 }
 
 
 @Composable
 fun RegistrationScreen(navController: NavController) {
-
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var repeatedPassword by remember { mutableStateOf("") }
+    val viewModel: RegistrationViewModel = viewModel(factory = RegistrationViewModel.Factory)
+    val context: Context = LocalContext.current
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -96,32 +90,32 @@ fun RegistrationScreen(navController: NavController) {
             )
             UsernameInput(
                 label = R.string.username,
-                value = username,
-                onValueChanged = { username = it },
+                value = viewModel.username,
+                onValueChanged = { viewModel.username = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
             EmailInput(
                 label = R.string.email,
-                value = email,
-                onValueChanged = { email = it },
+                value = viewModel.email,
+                onValueChanged = { viewModel.email = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
             PasswordInput(
                 label = R.string.password,
-                value = password,
-                onValueChanged = { password = it },
+                value = viewModel.password,
+                onValueChanged = { viewModel.password = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
             PasswordInput(
                 label = R.string.repeatedPassword,
-                value = repeatedPassword,
-                onValueChanged = { repeatedPassword = it },
+                value = viewModel.repeatedPassword,
+                onValueChanged = { viewModel.repeatedPassword = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
@@ -133,7 +127,13 @@ fun RegistrationScreen(navController: NavController) {
             modifier = Modifier
                 .padding(10.dp)
         ) {
-            RegisterButton(username, email, password, repeatedPassword)
+            RegisterButton(
+                viewModel.username,
+                viewModel.email,
+                viewModel.password,
+                viewModel.repeatedPassword,
+                onRegistrationClick = { viewModel.register(context = context) }
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
             Divider(color = Color.DarkGray, thickness = 1.dp)
@@ -146,13 +146,20 @@ fun RegistrationScreen(navController: NavController) {
 }
 
 @Composable
-fun RegisterButton(username: String, email: String, password: String, repeatedPassword: String) {
-    var emptyRegistrationFields by remember { mutableStateOf(false) }
+fun RegisterButton(
+    username: String,
+    email: String,
+    password: String,
+    repeatedPassword: String,
+    onRegistrationClick: () -> Unit,
+) {
     val context: Context = LocalContext.current
     Button(
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         onClick = {
-            emptyRegistrationFields = registrationValidation(username, email, password, repeatedPassword, context)
+            if (registrationValidation(username, email, password, repeatedPassword, context)) {
+                onRegistrationClick()
+            }
         },
         modifier = Modifier.width(240.dp)
     ) {
