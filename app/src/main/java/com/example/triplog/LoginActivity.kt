@@ -79,7 +79,11 @@ fun LoginScreen(navController: NavController) {
     }
 
     if (showDialog) {
-        ErrorDialog(viewModel.loginResult!!) {
+        ErrorDialog(
+            viewModel.loginResult!!.message!!,
+            viewModel.loginResult!!.errors!!.email!!,
+            viewModel.loginResult!!.errors!!.password!!
+        ) {
             showDialog = false
             viewModel.loginState = LoginState.NotLogged
         }
@@ -157,7 +161,7 @@ fun LoginScreen(navController: NavController) {
 }
 
 @Composable
-fun ErrorDialog(loginResult: LoginResult, onDissmiss: () -> Unit) {
+fun ErrorDialog( message: String?, email: List<String?>?, password:  List<String?>?, onDissmiss: () -> Unit) {
     Dialog(
         onDismissRequest = { onDissmiss() },
     ) {
@@ -171,20 +175,20 @@ fun ErrorDialog(loginResult: LoginResult, onDissmiss: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    text = loginResult.message.toString(),
+                    text = message.toString(),
                     fontSize = 24.sp,
                     color = onErrorContainerDark
                 )
-                if (loginResult.errors!!.email!!.isNotEmpty()) {
+                if (email!!.isNotEmpty()) {
                     LazyColumn {
-                        items(loginResult.errors.email!!) { error ->
+                        items(email) { error ->
                             ErrorDetails(error!!)
                         }
                     }
                 }
-                if (loginResult.errors.password!!.isNotEmpty()) {
+                if (password!!.isNotEmpty()) {
                     LazyColumn {
-                        items(loginResult.errors.password) { error ->
+                        items(password) { error ->
                             ErrorDetails(error!!)
                         }
                     }

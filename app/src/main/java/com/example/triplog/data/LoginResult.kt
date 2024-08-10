@@ -9,10 +9,10 @@ data class LoginResult(
     val token: String?,
     @Json(name = "user")
     val user: User?,
-    @Json(name = "message")
-    val message: String?,
     @Json(name = "errors")
-    val errors: Errors?
+    val errors: Errors?,
+    @Json(name = "message")
+    val message: String?
 ) {
     @JsonClass(generateAdapter = true)
     data class User(

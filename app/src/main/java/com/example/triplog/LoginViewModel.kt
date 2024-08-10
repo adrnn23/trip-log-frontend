@@ -11,7 +11,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.triplog.data.LoginRegistrationResult
 import com.example.triplog.data.LoginRequest
 import com.example.triplog.data.LoginResult
 import com.example.triplog.network.InterfaceRepository
@@ -19,7 +18,6 @@ import com.example.triplog.network.RepositoryContainer
 import com.example.triplog.network.TripLogRetrofitClient
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
-import java.io.IOException
 
 class TripLogApplication : Application() {
     lateinit var container: RepositoryContainer
@@ -65,22 +63,18 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
         viewModelScope.launch {
             try {
                 val result = repository.getLoginResult(loginRequest!!)
-                if (result.token != null && result.user != null) {
+                if (result!!.token != null && result.user != null) {
                     loginResult = result
                     loginState = LoginState.Logged
-                    email=loginResult!!.token!!
-                } else if (result.errors != null || result.message != null) {
+                    email = loginResult!!.token!!
+                } else if (result.errors!!.email!!.isNotEmpty() || result.message != null || result.errors.password!!.isNotEmpty()) {
                     loginResult = result
                     loginState = LoginState.Error
                 } else {
                     loginState = LoginState.NotLogged
                 }
-            } catch (e: HttpException) {
-                if (e.code() == 422) {
-                    loginState = LoginState.Error
-                }
             } catch (e: Exception) {
-                loginState = LoginState.NotLogged
+                loginState = LoginState.Error
             }
         }
 

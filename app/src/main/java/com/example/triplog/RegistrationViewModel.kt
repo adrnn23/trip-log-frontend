@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.triplog.data.LoginRegistrationResult
 import com.example.triplog.data.RegistrationRequest
 import com.example.triplog.data.RegistrationResult
 import com.example.triplog.network.InterfaceRepository
