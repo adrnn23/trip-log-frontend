@@ -5,6 +5,7 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class RegistrationResult(
+    val resultCode: Int?,
     @Json(name = "token")
     val token: String?,
     @Json(name = "user")
@@ -17,19 +18,19 @@ data class RegistrationResult(
     @JsonClass(generateAdapter = true)
     data class User(
         @Json(name = "email")
-        val email: String,
+        val email: String?,
         @Json(name = "id")
-        val id: Int,
+        val id: Int?,
         @Json(name = "name")
-        val name: String
+        val name: String?
     )
     @JsonClass(generateAdapter = true)
     data class Errors(
         @Json(name = "email")
-        val email: List<String>,
+        val email: List<String?>?,
         @Json(name = "name")
-        val name: List<String>,
+        val name: List<String?>?,
         @Json(name = "password")
-        val password: List<String>
+        val password: List<String?>?
     )
 }

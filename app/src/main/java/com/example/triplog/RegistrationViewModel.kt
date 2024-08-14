@@ -14,7 +14,6 @@ import com.example.triplog.data.RegistrationRequest
 import com.example.triplog.data.RegistrationResult
 import com.example.triplog.network.InterfaceRepository
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 import java.io.IOException
 
 
@@ -46,22 +45,27 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
     }
 
     fun register(context: Context) {
-        if (username.isBlank() || email.isBlank() || password.isBlank() || repeatedPassword.isBlank()) {
-            Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
-            return
-        }
+        /*        if (username.isBlank() || email.isBlank() || password.isBlank() || repeatedPassword.isBlank()) {
+                    Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
+                    return
+                }*/
         registrationRequest =
             RegistrationRequest(username, email, password, repeatedPassword, "android")
         viewModelScope.launch {
             try {
-                registrationResult = repository.getRegistrationResult(registrationRequest!!)
-                registrationState = RegistrationState.Registered
+                val result = repository.getRegistrationResult(registrationRequest!!)
+                if (result?.resultCode == 200 && result.token != null && result.user != null) {
+                    registrationResult = result
+                    registrationState = RegistrationState.Registered
+                    email = registrationResult?.token.toString()
+                } else if ((result?.resultCode == 422 && result.message!!.isNotBlank()) && (result.errors?.email!!.isNotEmpty() || result.errors.name!!.isNotEmpty() || result.errors.password!!.isNotEmpty())) {
+                    registrationResult = result
+                    registrationState = RegistrationState.Error
+                } else {
+                    registrationState = RegistrationState.NotRegistered
+                }
             } catch (e: IOException) {
                 registrationState = RegistrationState.NotRegistered
-                Toast.makeText(context, "Błąd sieci", Toast.LENGTH_SHORT).show()
-            } catch (e: HttpException) {
-                registrationState = RegistrationState.NotRegistered
-                Toast.makeText(context, "Błąd serwera", Toast.LENGTH_SHORT).show()
             }
         }
     }

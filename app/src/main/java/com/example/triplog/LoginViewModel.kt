@@ -17,7 +17,6 @@ import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.network.RepositoryContainer
 import com.example.triplog.network.TripLogRetrofitClient
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 
 class TripLogApplication : Application() {
     lateinit var container: RepositoryContainer
@@ -40,7 +39,7 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
 
     var loginResult by mutableStateOf<LoginResult?>(null)
 
-    var loginRequest by mutableStateOf<LoginRequest?>(null)
+    private var loginRequest by mutableStateOf<LoginRequest?>(null)
 
 
     companion object {
@@ -55,19 +54,22 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
     }
 
     fun login(context: Context) {
-        if (email.isBlank() || password.isBlank()) {
-            Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
+/*        if (email.isBlank() || password.isBlank()) {
+            Toast.makeText(context, R.string.emptyFieldsInfo, Toast.LENGTH_SHORT).show()
             return
-        }
+        }*/
         loginRequest = LoginRequest(email, password, "android")
         viewModelScope.launch {
             try {
                 val result = repository.getLoginResult(loginRequest!!)
-                if (result!!.token != null && result.user != null) {
+                if (result?.resultCode == 200 && result.token != null && result.user != null) {
                     loginResult = result
                     loginState = LoginState.Logged
-                    email = loginResult!!.token!!
-                } else if (result.errors!!.email!!.isNotEmpty() || result.message != null || result.errors.password!!.isNotEmpty()) {
+                    email = loginResult?.token.toString()
+                } else if ((result?.resultCode == 422 && result.message!!.isNotBlank()) && (result.errors?.email!!.isNotEmpty() || result.errors.password!!.isNotEmpty())) {
+                    loginResult = result
+                    loginState = LoginState.Error
+                } else if (result?.resultCode == 401 && result.message!!.isNotBlank()) {
                     loginResult = result
                     loginState = LoginState.Error
                 } else {

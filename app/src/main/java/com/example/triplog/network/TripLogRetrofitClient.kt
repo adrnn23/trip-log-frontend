@@ -21,7 +21,7 @@ interface TripLogApiService {
 
     @Headers("Content-Type: application/json", "Accept: application/json")
     @POST("/api/auth/register")
-    suspend fun getRegistrationResult(@Body request: RegistrationRequest): RegistrationResult
+    suspend fun getRegistrationResult(@Body request: RegistrationRequest): Response<RegistrationResult>
 }
 
 interface RepositoryContainer {

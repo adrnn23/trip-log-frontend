@@ -5,14 +5,15 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class LoginResult(
+    val resultCode: Int?,
     @Json(name = "token")
     val token: String?,
     @Json(name = "user")
     val user: User?,
-    @Json(name = "errors")
-    val errors: Errors?,
     @Json(name = "message")
-    val message: String?
+    val message: String?,
+    @Json(name = "errors")
+    val errors: Errors?
 ) {
     @JsonClass(generateAdapter = true)
     data class User(

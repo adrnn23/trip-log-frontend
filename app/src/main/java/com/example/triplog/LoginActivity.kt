@@ -53,16 +53,15 @@ import com.example.triplog.ui.theme.errorContainerDark
 import com.example.triplog.ui.theme.onErrorContainerDark
 
 
-fun loginValidation(
+/*fun loginValidation(
     email: String, password: String, context: Context,
 ): Boolean {
     if (email == "" || password == "") {
-        Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, R.string.emptyFieldsInfo, Toast.LENGTH_SHORT).show()
         return false
     }
-    Toast.makeText(context, "Logowanie...", Toast.LENGTH_SHORT).show()
     return true
-}
+}*/
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -74,15 +73,15 @@ fun LoginScreen(navController: NavController) {
 
     LaunchedEffect(viewModel.loginState) {
         if (viewModel.loginState == LoginState.Error) {
-            showDialog = true
+            if (viewModel.loginResult != null) {
+                showDialog = true
+            }
         }
     }
 
     if (showDialog) {
-        ErrorDialog(
-            viewModel.loginResult!!.message!!,
-            viewModel.loginResult!!.errors!!.email!!,
-            viewModel.loginResult!!.errors!!.password!!
+        LoginErrorDialog(
+            viewModel.loginResult
         ) {
             showDialog = false
             viewModel.loginState = LoginState.NotLogged
@@ -115,7 +114,7 @@ fun LoginScreen(navController: NavController) {
                 .fillMaxWidth()
         ) {
             Text(
-                text = stringResource(R.string.logowanie),
+                text = stringResource(R.string.login),
                 fontSize = 32.sp,
                 modifier = Modifier
                     .padding(top = 10.dp, bottom = 10.dp)
@@ -161,40 +160,55 @@ fun LoginScreen(navController: NavController) {
 }
 
 @Composable
-fun ErrorDialog( message: String?, email: List<String?>?, password:  List<String?>?, onDissmiss: () -> Unit) {
+fun LoginErrorDialog(loginResult: LoginResult?, onErrorDialogClick: () -> Unit) {
     Dialog(
-        onDismissRequest = { onDissmiss() },
+        onDismissRequest = { onErrorDialogClick() },
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth()
                 .border(color = Color.Black, width = 1.dp, shape = RoundedCornerShape(10.dp))
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .padding(10.dp)
             ) {
-                Text(
-                    text = message.toString(),
-                    fontSize = 24.sp,
-                    color = onErrorContainerDark
-                )
-                if (email!!.isNotEmpty()) {
-                    LazyColumn {
-                        items(email) { error ->
-                            ErrorDetails(error!!)
+                Column(
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = loginResult?.message.toString(),
+                        fontSize = 22.sp,
+                        color = onErrorContainerDark
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    if (loginResult?.resultCode == 422 && loginResult.errors != null) {
+
+                        if (loginResult.errors.email != null) {
+                            LazyColumn {
+                                items(loginResult.errors.email) { error ->
+                                    error?.let { ErrorDetails(it) }
+                                }
+                            }
                         }
-                    }
-                }
-                if (password!!.isNotEmpty()) {
-                    LazyColumn {
-                        items(password) { error ->
-                            ErrorDetails(error!!)
+                        if (loginResult.errors.password != null) {
+                            LazyColumn {
+                                items(loginResult.errors.password) { error ->
+                                    error?.let { ErrorDetails(it) }
+                                }
+                            }
                         }
+                    } else if (loginResult?.resultCode == 401) {
+                        ErrorDetails(loginResult.message.toString())
                     }
                 }
                 Button(
-                    onClick = { onDissmiss() },
+                    onClick = { onErrorDialogClick() },
                     colors = ButtonDefaults.buttonColors(errorContainerDark)
                 ) {
                     Text(
@@ -204,8 +218,8 @@ fun ErrorDialog( message: String?, email: List<String?>?, password:  List<String
                     )
                 }
             }
-
         }
+
     }
 }
 
@@ -232,9 +246,10 @@ fun LoginButton(email: String, password: String, onLoginClick: () -> Unit) {
     Button(
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         onClick = {
-            if (loginValidation(email, password, context)) {
+/*            if (loginValidation(email, password, context)) {
                 onLoginClick()
-            }
+            }*/
+            onLoginClick()
         },
         modifier = Modifier.width(220.dp)
     ) {
@@ -252,8 +267,8 @@ fun LoginButton(email: String, password: String, onLoginClick: () -> Unit) {
 fun NoAccount(navController: NavController) {
 
     val annotatedString = buildAnnotatedString {
-        val str = "Nie masz konta? Zarejestruj się!"
-        val startStr = str.indexOf("Zarejestruj")
+        val str = "Don\'t have an account? Sign up!"
+        val startStr = str.indexOf("Sign")
         val endStr = str.indexOf("!")
 
         append(str)
