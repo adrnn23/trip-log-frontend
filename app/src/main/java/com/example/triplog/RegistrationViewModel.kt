@@ -1,7 +1,5 @@
 package com.example.triplog
 
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -26,12 +24,9 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var repeatedPassword by mutableStateOf("")
-
     var registrationState: RegistrationState by mutableStateOf(RegistrationState.NotRegistered)
-
     var registrationResult by mutableStateOf<RegistrationResult?>(null)
-
-    var registrationRequest by mutableStateOf<RegistrationRequest?>(null)
+    private var registrationRequest by mutableStateOf<RegistrationRequest?>(null)
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
@@ -44,11 +39,7 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
         }
     }
 
-    fun register(context: Context) {
-        /*        if (username.isBlank() || email.isBlank() || password.isBlank() || repeatedPassword.isBlank()) {
-                    Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
-                    return
-                }*/
+    fun register() {
         registrationRequest =
             RegistrationRequest(username, email, password, repeatedPassword, "android")
         viewModelScope.launch {
@@ -57,15 +48,14 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
                 if (result?.resultCode == 200 && result.token != null && result.user != null) {
                     registrationResult = result
                     registrationState = RegistrationState.Registered
-                    email = registrationResult?.token.toString()
-                } else if ((result?.resultCode == 422 && result.message!!.isNotBlank()) && (result.errors?.email!!.isNotEmpty() || result.errors.name!!.isNotEmpty() || result.errors.password!!.isNotEmpty())) {
+                } else if ((result?.resultCode == 422 && result.message != null) && (result.errors?.email != null || result.errors?.name != null || result.errors?.password != null)) {
                     registrationResult = result
                     registrationState = RegistrationState.Error
                 } else {
                     registrationState = RegistrationState.NotRegistered
                 }
             } catch (e: IOException) {
-                registrationState = RegistrationState.NotRegistered
+                registrationState = RegistrationState.Error
             }
         }
     }

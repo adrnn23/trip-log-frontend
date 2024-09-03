@@ -1,8 +1,6 @@
 package com.example.triplog
 
-import android.content.Context
 import androidx.annotation.StringRes
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,9 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mail
@@ -21,7 +18,6 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,82 +32,59 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.triplog.data.RegistrationResult
 import com.example.triplog.ui.theme.TripLogTheme
-import com.example.triplog.ui.theme.errorContainerDark
-import com.example.triplog.ui.theme.onErrorContainerDark
-
-
-/*fun registrationValidation(
-    username: String, email: String,
-    password: String, repeatedPassword: String, context: Context,
-): Boolean {
-    if (username == "" || email == "" || password == "" || repeatedPassword == "") {
-        Toast.makeText(context, "Uzupełnij wymagane pola.", Toast.LENGTH_SHORT).show()
-        return false
-    }
-    Toast.makeText(context, "Rejestracja...", Toast.LENGTH_SHORT).show()
-    return true
-}*/
-
 
 @Composable
 fun RegistrationScreen(navController: NavController) {
     val viewModel: RegistrationViewModel = viewModel(factory = RegistrationViewModel.Factory)
-    val context: Context = LocalContext.current
-    var showDialog by remember { mutableStateOf(false) }
+    var showErrors by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel.registrationState) {
         if (viewModel.registrationState == RegistrationState.Error) {
-            if (viewModel.registrationResult != null) {
-                showDialog = true
+            if (viewModel.registrationResult?.resultCode == 422) {
+                showErrors = true
             }
         }
-    }
-
-    if (showDialog) {
-        RegistartionErrorDialog(
-            viewModel.registrationResult
-        ) {
-            showDialog = false
-            viewModel.registrationState = RegistrationState.NotRegistered
+        if (viewModel.registrationState == RegistrationState.Registered) {
+            if (viewModel.registrationResult != null) {
+                showErrors = false
+            }
         }
     }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize()
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(bottom = 20.dp, top = 60.dp)
-            )
-        }
+
+        Text(
+            text = stringResource(R.string.app_name),
+            fontSize = 64.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .padding(top = 60.dp)
+        )
 
         Column(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier
+                .padding(10.dp)
+                .fillMaxWidth()
         ) {
             Text(
                 text = stringResource(R.string.registration),
@@ -127,6 +100,11 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
+            if (showErrors) {
+                if (viewModel.registrationResult?.errors?.name != null) {
+                    ErrorDetails(error = viewModel.registrationResult?.errors?.name!![0].toString())
+                }
+            }
             EmailInput(
                 label = R.string.email,
                 value = viewModel.email,
@@ -135,6 +113,11 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
+            if (showErrors) {
+                if (viewModel.registrationResult?.errors?.email != null) {
+                    ErrorDetails(error = viewModel.registrationResult?.errors?.email!![0].toString())
+                }
+            }
             PasswordInput(
                 label = R.string.password,
                 value = viewModel.password,
@@ -143,6 +126,11 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
+            if (showErrors) {
+                if (viewModel.registrationResult?.errors?.password != null) {
+                    ErrorDetails(error = viewModel.registrationResult?.errors?.password!![0].toString())
+                }
+            }
             PasswordInput(
                 label = R.string.repeatedPassword,
                 value = viewModel.repeatedPassword,
@@ -151,6 +139,11 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
+            if (showErrors) {
+                if (viewModel.registrationResult?.errors?.password != null) {
+                    ErrorDetails(error = viewModel.registrationResult?.errors?.password!![0].toString())
+                }
+            }
         }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -159,88 +152,12 @@ fun RegistrationScreen(navController: NavController) {
                 .padding(10.dp)
         ) {
             RegisterButton(
-                viewModel.username,
-                viewModel.email,
-                viewModel.password,
-                viewModel.repeatedPassword,
-                onRegistrationClick = { viewModel.register(context = context) }
+                onRegistrationClick = { viewModel.register() }
             )
-
             Spacer(modifier = Modifier.height(10.dp))
             Divider(color = Color.DarkGray, thickness = 1.dp)
             Spacer(modifier = Modifier.height(10.dp))
-
-            BackToLoginButton(navController)
-        }
-
-    }
-}
-
-@Composable
-fun RegistartionErrorDialog(registrationResult: RegistrationResult?, onErrorDialogClick: () -> Unit) {
-    Dialog(
-        onDismissRequest = { onErrorDialogClick() },
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(color = Color.Black, width = 1.dp, shape = RoundedCornerShape(10.dp))
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .padding(10.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .padding(10.dp)
-                ) {
-                    Text(
-                        text = registrationResult?.message.toString(),
-                        fontSize = 22.sp,
-                        color = onErrorContainerDark
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    if (registrationResult?.resultCode == 422 && registrationResult.errors != null) {
-
-                        if (registrationResult.errors.name != null) {
-                            LazyColumn {
-                                items(registrationResult.errors.name) { error ->
-                                    ErrorDetails(error!!)
-                                }
-                            }
-                        }
-                        if (registrationResult.errors.email != null) {
-                            LazyColumn {
-                                items(registrationResult.errors.email) { error ->
-                                    ErrorDetails(error!!)
-                                }
-                            }
-                        }
-                        if (registrationResult.errors.password != null) {
-                            LazyColumn {
-                                items(registrationResult.errors.password) { error ->
-                                    ErrorDetails(error!!)
-                                }
-                            }
-                        }
-
-                    }
-                }
-                Button(
-                    onClick = { onErrorDialogClick() },
-                    colors = ButtonDefaults.buttonColors(errorContainerDark)
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.ok),
-                        color = onErrorContainerDark,
-                        fontSize = 14.sp
-                    )
-                }
-            }
+            HaveAccount(navController)
         }
 
     }
@@ -248,44 +165,19 @@ fun RegistartionErrorDialog(registrationResult: RegistrationResult?, onErrorDial
 
 @Composable
 fun RegisterButton(
-    username: String,
-    email: String,
-    password: String,
-    repeatedPassword: String,
     onRegistrationClick: () -> Unit,
 ) {
-    val context: Context = LocalContext.current
     Button(
+        shape = RoundedCornerShape(5.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         onClick = {
-/*            if (registrationValidation(username, email, password, repeatedPassword, context)) {
-                onRegistrationClick()
-            }*/
             onRegistrationClick()
         },
-        modifier = Modifier.width(240.dp)
+        modifier = Modifier.width(220.dp)
     ) {
         Text(
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             text = stringResource(R.string.register),
-            fontSize = 18.sp,
-            modifier = Modifier
-                .padding(2.dp)
-        )
-    }
-}
-
-@Composable
-fun BackToLoginButton(navController: NavController) {
-    Button(
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        onClick = { navController.navigate(Screen.LoginScreen.destination) },
-        modifier = Modifier
-            .width(240.dp)
-    ) {
-        Text(
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            text = stringResource(R.string.login),
             fontSize = 18.sp,
             modifier = Modifier
                 .padding(2.dp)
@@ -373,6 +265,29 @@ fun PasswordInput(
         ),
         modifier = modifier,
         visualTransformation = PasswordVisualTransformation()
+    )
+}
+
+@Composable
+fun HaveAccount(navController: NavController) {
+    val annotatedString = buildAnnotatedString {
+        val str = stringResource(id = R.string.haveAccount)
+        val startStr = str.indexOf("Login")
+        val endStr = startStr + 5
+        append(str)
+        addStyle(
+            style = SpanStyle(
+                color = Color(0, 0, 128),
+                textDecoration = TextDecoration.Underline,
+            ),
+            start = startStr, end = endStr
+        )
+    }
+    ClickableText(
+        text = annotatedString,
+        onClick = { navController.navigate(Screen.LoginScreen.destination) },
+        modifier = Modifier
+            .padding(2.dp)
     )
 }
 

@@ -61,10 +61,20 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
                 val unauthorizedBody = returnLoginUnauthorized(response)?.string()
                 var loginResult = Moshi.Builder().build().adapter(LoginResult::class.java)
                     .fromJson(unauthorizedBody!!)
-                if (loginResult?.message?.isNotBlank() == true) {
+                if (loginResult?.message != null) {
                     Log.d("Unauthorized - Message", loginResult.message.toString())
                     loginResult =
                         LoginResult(response.code(), null, null, loginResult.message, null)
+                }
+                if (loginResult?.message != null) {
+                    loginResult =
+                        LoginResult(
+                            response.code(),
+                            null,
+                            null,
+                            loginResult.message,
+                            null
+                        )
                     return loginResult
                 }
             }
@@ -132,13 +142,19 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
                 if (registrationResult?.message != null)
                     Log.d("Registration Errors - Message", registrationResult.message.toString())
 
-                if (registrationResult?.errors?.name?.isNotEmpty() == true)
-                    Log.d("Registration Errors - Name", registrationResult.errors?.name!![0].toString())
+                if (registrationResult?.errors?.name != null)
+                    Log.d(
+                        "Registration Errors - Name",
+                        registrationResult.errors?.name!![0].toString()
+                    )
 
-                if (registrationResult?.errors?.email?.isNotEmpty() == true)
-                    Log.d("Registration Errors - Email", registrationResult.errors?.email!![0].toString())
+                if (registrationResult?.errors?.email != null)
+                    Log.d(
+                        "Registration Errors - Email",
+                        registrationResult.errors?.email!![0].toString()
+                    )
 
-                if (registrationResult?.errors?.password?.isNotEmpty() == true)
+                if (registrationResult?.errors?.password != null)
                     Log.d(
                         "Registration Errors - Password",
                         registrationResult.errors?.password!![0].toString()

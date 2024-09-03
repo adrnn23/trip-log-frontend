@@ -13,8 +13,24 @@
     <string name="logIn">Log in</string>
 
     <string name="noAccount">Don\'t have an account? Sign up!</string>
+    <string name="haveAccount">Have an account? Login!</string>
     <string name="ok">OK</string>
 
     <string name="emptyFieldsInfo">Fill the required fields.</string>
+    <string name="invalidLoginCredentials">Invalid login credentials - invalid email or password.</string>
+
+    <string name="numberOfTrips">Trips</string>
+    <string name="numberOfPlannedTrips">Planned Trips</string>
+    <string name="favoriteCategories">Favorite Trip Categories</string>
+    <string name="aboutMe">About me</string>
+
+    <string name="trips">Trips</string>
+    <string name="plannedTrips">Planned Trips</string>
+    <string name="tripsAdvices">Trips Advices</string>
+
+    <string name="home">Home</string>
+    <string name="addTrips">Add Trip</string>
+    <string name="profile">Profile</string>
+
 
 </resources>
