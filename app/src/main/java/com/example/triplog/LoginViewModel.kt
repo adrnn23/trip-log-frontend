@@ -11,17 +11,23 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.triplog.data.LoginRequest
 import com.example.triplog.data.LoginResult
 import com.example.triplog.network.InterfaceRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class LoginState {
     NotLogged, Logged, Error, Unauthorized
 }
+enum class LoadingState {
+    NotLoaded, Loading, Loaded
+}
+
 
 class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() {
 
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     var loginState: LoginState by mutableStateOf(LoginState.NotLogged)
+    var loadingState: LoadingState  by mutableStateOf(LoadingState.NotLoaded)
     var loginResult by mutableStateOf<LoginResult?>(null)
     private var loginRequest by mutableStateOf<LoginRequest?>(null)
 
@@ -38,8 +44,10 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
 
     fun login() {
         loginRequest = LoginRequest(email, password, "android")
+        loadingState = LoadingState.Loading
         viewModelScope.launch {
             try {
+                delay(500)
                 val result = repository.getLoginResult(loginRequest!!)
                 if (result?.resultCode == 200 && result.token != null && result.user != null) {
                     loginResult = result
@@ -56,6 +64,7 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
             } catch (e: Exception) {
                 loginState = LoginState.Error
             }
+            loadingState = LoadingState.Loaded
         }
     }
 }

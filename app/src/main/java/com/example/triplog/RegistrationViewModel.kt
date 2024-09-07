@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.triplog.data.RegistrationRequest
 import com.example.triplog.data.RegistrationResult
 import com.example.triplog.network.InterfaceRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -25,6 +26,7 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
     var password by mutableStateOf("")
     var repeatedPassword by mutableStateOf("")
     var registrationState: RegistrationState by mutableStateOf(RegistrationState.NotRegistered)
+    var loadingState: LoadingState  by mutableStateOf(LoadingState.NotLoaded)
     var registrationResult by mutableStateOf<RegistrationResult?>(null)
     private var registrationRequest by mutableStateOf<RegistrationRequest?>(null)
 
@@ -42,8 +44,10 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
     fun register() {
         registrationRequest =
             RegistrationRequest(username, email, password, repeatedPassword, "android")
+        loadingState = LoadingState.Loading
         viewModelScope.launch {
             try {
+                delay(500)
                 val result = repository.getRegistrationResult(registrationRequest!!)
                 if (result?.resultCode == 200 && result.token != null && result.user != null) {
                     registrationResult = result
@@ -57,6 +61,7 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
             } catch (e: IOException) {
                 registrationState = RegistrationState.Error
             }
+            loadingState = LoadingState.Loaded
         }
     }
 }

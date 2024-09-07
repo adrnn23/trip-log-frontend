@@ -1,18 +1,22 @@
 package com.example.triplog
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Person
@@ -31,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -51,6 +56,7 @@ import com.example.triplog.ui.theme.TripLogTheme
 fun RegistrationScreen(navController: NavController) {
     val viewModel: RegistrationViewModel = viewModel(factory = RegistrationViewModel.Factory)
     var showErrors by remember { mutableStateOf(false) }
+    var showProgressIndicator by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel.registrationState) {
         if (viewModel.registrationState == RegistrationState.Error) {
@@ -64,6 +70,13 @@ fun RegistrationScreen(navController: NavController) {
             }
         }
     }
+    LaunchedEffect(viewModel.loadingState) {
+        if (viewModel.loadingState == LoadingState.Loading && viewModel.registrationState != RegistrationState.Registered) {
+            showProgressIndicator = true
+        } else {
+            showProgressIndicator = false
+        }
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -71,13 +84,24 @@ fun RegistrationScreen(navController: NavController) {
         modifier = Modifier.fillMaxSize()
     ) {
 
-        Text(
-            text = stringResource(R.string.app_name),
-            fontSize = 64.sp,
-            fontWeight = FontWeight.Bold,
+        Row(horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(top = 60.dp)
-        )
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            Text(
+                text = stringResource(id = R.string.app_name),
+                fontSize = 64.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                modifier = Modifier.size(64.dp)
+            )
+        }
 
         Column(
             horizontalAlignment = Alignment.Start,
@@ -158,6 +182,10 @@ fun RegistrationScreen(navController: NavController) {
             Divider(color = Color.DarkGray, thickness = 1.dp)
             Spacer(modifier = Modifier.height(10.dp))
             HaveAccount(navController)
+            Spacer(modifier = Modifier.height(20.dp))
+            if (showProgressIndicator) {
+                LinearIndicator()
+            }
         }
 
     }

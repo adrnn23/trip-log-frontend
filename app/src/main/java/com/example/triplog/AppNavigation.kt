@@ -9,13 +9,18 @@ sealed class Screen(val destination: String) {
     data object LoginScreen : Screen("LoginScreen")
     data object RegistrationScreen : Screen("RegistrationScreen")
     data object UserProfileScreen : Screen("UserProfileScreen")
+    data object SplashScreen : Screen ("SplashScreen")
 }
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Screen.LoginScreen.destination) {
+    NavHost(navController = navController, startDestination = Screen.SplashScreen.destination) {
+        composable(route=Screen.SplashScreen.destination){
+            SplashScreen(navController = navController)
+        }
+        
         composable(route = Screen.LoginScreen.destination) {
             LoginScreen(navController = navController)
         }
