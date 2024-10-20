@@ -1,4 +1,4 @@
-package com.example.triplog
+package com.example.triplog.authorization.login.presentation
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,8 +8,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.triplog.data.LoginRequest
-import com.example.triplog.data.LoginResult
+import com.example.triplog.main.TripLogApplication
+import com.example.triplog.authorization.login.data.LoginRequest
+import com.example.triplog.authorization.login.data.LoginResult
 import com.example.triplog.network.InterfaceRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 enum class LoginState {
     NotLogged, Logged, Error, Unauthorized
 }
+
 enum class LoadingState {
     NotLoaded, Loading, Loaded
 }
@@ -26,10 +28,13 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
 
     var email by mutableStateOf("")
     var password by mutableStateOf("")
+    private val deviceName by mutableStateOf("android")
+
     var loginState: LoginState by mutableStateOf(LoginState.NotLogged)
-    var loadingState: LoadingState  by mutableStateOf(LoadingState.NotLoaded)
+    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
+
     var loginResult by mutableStateOf<LoginResult?>(null)
-    private var loginRequest by mutableStateOf<LoginRequest?>(null)
+    private var loginRequest by mutableStateOf(LoginRequest(email, password, deviceName))
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
@@ -43,13 +48,13 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
     }
 
     fun login() {
-        loginRequest = LoginRequest(email, password, "android")
+        loginRequest = LoginRequest(email, password, deviceName)
         loadingState = LoadingState.Loading
         viewModelScope.launch {
             try {
                 delay(500)
-                val result = repository.getLoginResult(loginRequest!!)
-                if (result?.resultCode == 200 && result.token != null && result.user != null) {
+                val result = repository.getLoginResult(loginRequest)
+                if ((result?.resultCode == 200) && (result.token != null)) {
                     loginResult = result
                     loginState = LoginState.Logged
                 } else if ((result?.resultCode == 422 && result.message != null) && (result.errors?.email != null || result.errors?.password != null)) {

@@ -1,31 +1,27 @@
 package com.example.triplog.network
 
 import android.util.Log
-import com.example.triplog.data.LoginRequest
-import com.example.triplog.data.LoginResult
-import com.example.triplog.data.RegistrationRequest
-import com.example.triplog.data.RegistrationResult
+import com.example.triplog.authorization.login.data.LoginRequest
+import com.example.triplog.authorization.login.data.LoginResult
+import com.example.triplog.authorization.registration.data.RegistrationRequest
+import com.example.triplog.authorization.registration.data.RegistrationResult
 import com.squareup.moshi.Moshi
 import okhttp3.ResponseBody
 import retrofit2.Response
 
-fun returnLoginSuccess(response: Response<LoginResult>): LoginResult? {
+fun loginSuccess(response: Response<LoginResult>): LoginResult? {
     return response.body()
 }
 
-fun returnRegistrationSuccess(response: Response<RegistrationResult>): RegistrationResult? {
+fun loginClientError(response: Response<LoginResult>): ResponseBody? {
+    return response.errorBody()
+}
+
+fun registrationSuccess(response: Response<RegistrationResult>): RegistrationResult? {
     return response.body()
 }
 
-fun returnLoginUnauthorized(response: Response<LoginResult>): ResponseBody? {
-    return response.errorBody()
-}
-
-fun returnLoginErrors(response: Response<LoginResult>): ResponseBody? {
-    return response.errorBody()
-}
-
-fun returnRegistrationErrors(response: Response<RegistrationResult>): ResponseBody? {
+fun registrationClientError(response: Response<RegistrationResult>): ResponseBody? {
     return response.errorBody()
 }
 
@@ -39,70 +35,57 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
         val response: Response<LoginResult> = tripLogApiService.getLoginResult(request)
         when (response.code()) {
             200 -> {
-                var loginResult = returnLoginSuccess(response)
-                Log.d("Success - Token", loginResult?.token.toString())
-                Log.d("Success - Name", loginResult?.user!!.name.toString())
-                Log.d("Success - Email", loginResult.user!!.email.toString())
-                Log.d("Success - ID", loginResult.user!!.id.toString())
-                if (loginResult.token != null) {
-                    loginResult =
-                        LoginResult(
-                            response.code(),
-                            loginResult.token,
-                            loginResult.user,
-                            null,
-                            null
-                        )
-                    return loginResult
+                var loginResult = loginSuccess(response)
+                if (loginResult != null) {
+                    if (loginResult.token != null) {
+                        Log.d("Success - Token", loginResult.token.toString())
+                        loginResult = LoginResult(response.code(), loginResult.token, null, null)
+                        return loginResult
+                    }
                 }
             }
 
             401 -> {
-                val unauthorizedBody = returnLoginUnauthorized(response)?.string()
+                val unauthorizedBody = loginClientError(response)?.string()
                 var loginResult = Moshi.Builder().build().adapter(LoginResult::class.java)
                     .fromJson(unauthorizedBody!!)
-                if (loginResult?.message != null) {
-                    Log.d("Unauthorized - Message", loginResult.message.toString())
-                    loginResult =
-                        LoginResult(response.code(), null, null, loginResult.message, null)
-                }
-                if (loginResult?.message != null) {
-                    loginResult =
-                        LoginResult(
-                            response.code(),
-                            null,
-                            null,
-                            loginResult.message,
-                            null
-                        )
-                    return loginResult
+                if (loginResult != null) {
+                    if (loginResult.message != null) {
+                        Log.d("Unauthorized - Message", loginResult.message.toString())
+                        loginResult =
+                            LoginResult(response.code(), null, loginResult.message, null)
+                        return loginResult
+                    }
                 }
             }
 
             422 -> {
-                val errorBody = returnLoginErrors(response)?.string()
+                val errorBody = loginClientError(response)?.string()
                 var loginResult =
                     Moshi.Builder().build().adapter(LoginResult::class.java).fromJson(errorBody!!)
+                if (loginResult != null) {
+                    if (loginResult.errors != null && loginResult.message != null) {
+                        Log.d("Unprocessable Content - Message", loginResult.message.toString())
 
-                if (loginResult?.message != null)
-                    Log.d("Login Errors - Message", loginResult.message.toString())
+                        if (loginResult.errors?.email?.isNotEmpty() == true)
+                            Log.d(
+                                "Unprocessable Content - Email",
+                                loginResult.errors?.email!![0].toString()
+                            )
 
-                if (loginResult?.errors?.email?.isNotEmpty() == true)
-                    Log.d("Login Errors - Email", loginResult.errors?.email!![0].toString())
-
-                if (loginResult?.errors?.password?.isNotEmpty() == true)
-                    Log.d("Login Errors - Password", loginResult.errors?.password!![0].toString())
-
-                if (loginResult?.errors != null) {
-                    loginResult =
-                        LoginResult(
+                        if (loginResult.errors?.password?.isNotEmpty() == true)
+                            Log.d(
+                                "Unprocessable Content - Password",
+                                loginResult.errors?.password!![0].toString()
+                            )
+                        loginResult = LoginResult(
                             response.code(),
-                            null,
                             null,
                             loginResult.message,
                             loginResult.errors
                         )
-                    return loginResult
+                        return loginResult
+                    }
                 }
             }
         }
@@ -111,65 +94,57 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
 
 
     override suspend fun getRegistrationResult(request: RegistrationRequest): RegistrationResult? {
-        val response: Response<RegistrationResult> =
-            tripLogApiService.getRegistrationResult(request)
+        val response: Response<RegistrationResult> = tripLogApiService.getRegistrationResult(request)
         when (response.code()) {
-            200 -> {
-                var registrationResult = returnRegistrationSuccess(response)
-                Log.d("Success - Token", registrationResult?.token.toString())
-                Log.d("Success - Name", registrationResult?.user?.name.toString())
-                Log.d("Success - Email", registrationResult?.user?.email.toString())
-                Log.d("Success - ID", registrationResult?.user?.id.toString())
-
-                if (registrationResult?.token != null) {
-                    registrationResult = RegistrationResult(
-                        response.code(),
-                        registrationResult.token,
-                        registrationResult.user,
-                        null,
-                        null
-                    )
-                    return registrationResult
+            201 -> {
+                var registrationResult = registrationSuccess(response)
+                if (registrationResult != null) {
+                    if (registrationResult.token != null) {
+                        Log.d("Success - Token", registrationResult.token.toString())
+                        registrationResult = RegistrationResult(
+                            response.code(),
+                            registrationResult.token,
+                            null,
+                            null
+                        )
+                        return registrationResult
+                    }
                 }
             }
 
             422 -> {
-                val errorBody = returnRegistrationErrors(response)?.string()
-                var registrationResult =
-                    Moshi.Builder().build().adapter(RegistrationResult::class.java)
-                        .fromJson(errorBody.toString())
+                val errorBody = registrationClientError(response)?.string()
+                var registrationResult = Moshi.Builder().build().adapter(RegistrationResult::class.java)
+                        .fromJson(errorBody!!)
 
-                if (registrationResult?.message != null)
-                    Log.d("Registration Errors - Message", registrationResult.message.toString())
+                if (registrationResult != null) {
+                    if (registrationResult.errors != null && registrationResult.message != null) {
+                        Log.d("Unprocessable Content - Message", registrationResult.message.toString())
+                        if (registrationResult.errors?.name != null)
+                            Log.d(
+                                "Unprocessable Content - Name",
+                                registrationResult.errors?.name!![0].toString()
+                            )
 
-                if (registrationResult?.errors?.name != null)
-                    Log.d(
-                        "Registration Errors - Name",
-                        registrationResult.errors?.name!![0].toString()
-                    )
+                        if (registrationResult.errors?.email != null)
+                            Log.d(
+                                "Unprocessable Content - Email",
+                                registrationResult.errors?.email!![0].toString()
+                            )
 
-                if (registrationResult?.errors?.email != null)
-                    Log.d(
-                        "Registration Errors - Email",
-                        registrationResult.errors?.email!![0].toString()
-                    )
-
-                if (registrationResult?.errors?.password != null)
-                    Log.d(
-                        "Registration Errors - Password",
-                        registrationResult.errors?.password!![0].toString()
-                    )
-
-                if (registrationResult?.errors != null) {
-                    registrationResult =
-                        RegistrationResult(
-                            response.code(),
-                            null,
-                            null,
-                            registrationResult.message,
-                            registrationResult.errors
-                        )
-                    return registrationResult
+                        if (registrationResult.errors?.password != null)
+                            Log.d(
+                                "Unprocessable Content - Password",
+                                registrationResult.errors?.password!![0].toString()
+                            )
+                        registrationResult = RegistrationResult(
+                                response.code(),
+                                null,
+                                registrationResult.message,
+                                registrationResult.errors
+                            )
+                        return registrationResult
+                    }
                 }
             }
         }

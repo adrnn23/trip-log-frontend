@@ -1,9 +1,9 @@
 package com.example.triplog.network
 
-import com.example.triplog.data.LoginRequest
-import com.example.triplog.data.LoginResult
-import com.example.triplog.data.RegistrationRequest
-import com.example.triplog.data.RegistrationResult
+import com.example.triplog.authorization.login.data.LoginRequest
+import com.example.triplog.authorization.login.data.LoginResult
+import com.example.triplog.authorization.registration.data.RegistrationRequest
+import com.example.triplog.authorization.registration.data.RegistrationResult
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.Response
@@ -30,7 +30,7 @@ interface RepositoryContainer {
 
 class TripLogRetrofitClient : RepositoryContainer {
 
-    private val url = "http://192.168.0.x/"
+    private val url = "http://172.18.92.x/"
 
     private val moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     private val retrofit: Retrofit = Retrofit.Builder()

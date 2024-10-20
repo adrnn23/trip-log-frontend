@@ -1,4 +1,4 @@
-package com.example.triplog
+package com.example.triplog.main.presentation
 
 
 import androidx.compose.animation.core.Animatable
@@ -23,12 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.triplog.ui.theme.TripLogTheme
+import com.example.triplog.R
+import com.example.triplog.main.navigation.Screen
 import kotlinx.coroutines.delay
 
 @Composable
@@ -61,14 +60,5 @@ fun SplashScreen(navController: NavController) {
             contentDescription = null,
             modifier = Modifier.size(64.dp)
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SplashScreenPreview() {
-    TripLogTheme {
-        val navController = rememberNavController()
-        SplashScreen(navController = navController)
     }
 }

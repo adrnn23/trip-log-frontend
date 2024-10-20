@@ -1,4 +1,4 @@
-package com.example.triplog
+package com.example.triplog.main
 
 import android.app.Application
 import com.example.triplog.network.RepositoryContainer

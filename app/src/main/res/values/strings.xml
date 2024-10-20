@@ -12,25 +12,62 @@
     <string name="login">Login</string>
     <string name="logIn">Log in</string>
 
-    <string name="noAccount">Don\'t have an account? Sign up!</string>
-    <string name="haveAccount">Have an account? Login!</string>
+    <string name="createNewAccount">Create new account</string>
+    <string name="or">or</string>
+    <string name="logInToYourAccount">Log in to your account</string>
     <string name="ok">OK</string>
+    <string name="result">Result</string>
 
     <string name="emptyFieldsInfo">Fill the required fields.</string>
     <string name="invalidLoginCredentials">Invalid login credentials - invalid email or password.</string>
 
-    <string name="numberOfTrips">Trips</string>
-    <string name="numberOfPlannedTrips">Planned Trips</string>
-    <string name="favoriteCategories">Favorite Trip Categories</string>
+    <string name="favoriteCategories">Favorite Travel Categories</string>
     <string name="aboutMe">About me</string>
+    <string name="travelPreferences">Travel Preferences</string>
 
-    <string name="trips">Trips</string>
-    <string name="plannedTrips">Planned Trips</string>
-    <string name="tripsAdvices">Trips Advices</string>
+    <string name="travels">Travels</string>
+    <string name="favorite">Favorite travels</string>
+    <string name="planned">Planned travels</string>
+    <string name="travelAdvices">Travel Advices</string>
 
     <string name="home">Home</string>
     <string name="addTrips">Add Trip</string>
     <string name="profile">Profile</string>
 
+    <string name="editProfile">Edit profile</string>
+    <string name="editUsername">Edit username</string>
+    <string name="editEmail">Edit e-mail</string>
+
+    <string name="basicInformation">Basic information</string>
+    <string name="usernameLength">Username length must be equal to or less than 32.</string>
+    <string name="biography">Biography</string>
+    <string name="editBiography">Edit biography</string>
+    <string name="saveBiography">Save your biography</string>
+    <string name="validationError">Validation Error</string>
+    <string name="biographyLength">Biography length must be equal to or less than 384.</string>
+    <string name="saveChanges">Save changes</string>
+    <string name="wouldYouLikeToSaveChanges">Would you like to save changes to your profile?</string>
+
+    <string name="addTravelPreferences">Add your travel preferences</string>
+    <string name="saveTravelPreferences">Save travel preferences</string>
+    <string name="editPreferences">Edit travel preferences</string>
+    <string name="travelPreferencesNumber">Number of travel preferences must be equal to or less than 9.</string>
+
+    <string name="links">Links</string>
+    <string name="link">Link</string>
+    <string name="addLinks">Add your links</string>
+    <string name="deleteLinkTitle">Delete link</string>
+    <string name="deleteLinkText">Do you want to delete link?</string>
+    <string name="addMaxThreeLinks">Add your links (you can add max three links)</string>
+    <string name="addLink">Add link</string>
+    <string name="site">Site</string>
+    <string name="selectSite">Select site</string>
+    <string name="editLinks">Edit links</string>
+    <string name="saveYourLinks">Save your links</string>
+    <string name="facebook">Facebook</string>
+    <string name="instagram">Instagram</string>
+    <string name="x">X</string>
+    <string name="linksNumber">Number of links must be equal to or less than 3.</string>
+    <string name="siteAndLink">Link must match to the site.</string>
 
 </resources>
