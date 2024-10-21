@@ -18,10 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -44,39 +40,35 @@ import com.example.triplog.main.navigation.Screen
 @Composable
 fun LoginScreen(navController: NavController) {
     val viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
-    var showDialog by remember { mutableStateOf(false) }
-    var showErrors by remember { mutableStateOf(false) }
-    var showProgressIndicator by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel.loginState) {
         if (viewModel.loginState == LoginState.Error || viewModel.loginState == LoginState.Unauthorized) {
             if (viewModel.loginResult?.resultCode == 422) {
-                showErrors = true
-                showDialog = false
+                viewModel.isErrorsVisible = true
+                viewModel.isUnauthorizedDialogVisible = false
             } else if (viewModel.loginResult?.resultCode == 401) {
-                showDialog = true
-                showErrors = false
+                viewModel.isUnauthorizedDialogVisible = true
+                viewModel.isErrorsVisible = false
             }
         }
         if (viewModel.loginState == LoginState.Logged) {
             if (viewModel.loginResult != null) {
-                showErrors = false
-                showDialog = false
+                viewModel.isErrorsVisible = false
+                viewModel.isUnauthorizedDialogVisible = false
                 navController.navigate(Screen.UserProfileScreen.destination)
             }
         }
     }
+
     LaunchedEffect(viewModel.loadingState) {
-        if (viewModel.loadingState == LoadingState.Loading && viewModel.loginState != LoginState.Logged) {
-            showProgressIndicator = true
-        } else {
-            showProgressIndicator = false
-        }
+        if (viewModel.loadingState == LoadingState.Loading && viewModel.loginState != LoginState.Logged) 
+            viewModel.isProgressIndicatorVisible = true
+         else viewModel.isProgressIndicatorVisible = false
     }
 
-    if (showDialog) {
+    if (viewModel.isUnauthorizedDialogVisible) {
         InformationDialog(
-            R.string.result,
+            title = R.string.result,
             text = { Text(text = viewModel.loginResult?.message.toString()) },
             icon = {
                 Icon(
@@ -87,11 +79,11 @@ fun LoginScreen(navController: NavController) {
             },
             containerColor = MaterialTheme.colorScheme.errorContainer,
             onDismiss = {
-                showDialog = false
+                viewModel.isUnauthorizedDialogVisible = false
                 viewModel.loginState = LoginState.NotLogged
             },
             onConfirmClick = {
-                showDialog = false
+                viewModel.isUnauthorizedDialogVisible = false
                 viewModel.loginState = LoginState.NotLogged
             }
         )
@@ -145,7 +137,7 @@ fun LoginScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
-            if (showErrors) {
+            if (viewModel.isErrorsVisible) {
                 if (viewModel.loginResult?.errors?.email != null) {
                     ErrorDetails(error = viewModel.loginResult?.errors?.email!![0].toString())
                 }
@@ -158,7 +150,7 @@ fun LoginScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
-            if (showErrors) {
+            if (viewModel.isErrorsVisible) {
                 if (viewModel.loginResult?.errors?.password != null) {
                     ErrorDetails(error = viewModel.loginResult?.errors?.password!![0].toString())
                 }
@@ -184,7 +176,7 @@ fun LoginScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (showProgressIndicator) {
+            if (viewModel.isProgressIndicatorVisible) {
                 LinearIndicator()
             }
         }

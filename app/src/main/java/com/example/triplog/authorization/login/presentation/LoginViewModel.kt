@@ -36,6 +36,10 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
     var loginResult by mutableStateOf<LoginResult?>(null)
     private var loginRequest by mutableStateOf(LoginRequest(email, password, deviceName))
 
+    var isUnauthorizedDialogVisible by mutableStateOf(false)
+    var isErrorsVisible by mutableStateOf(false)
+    var isProgressIndicatorVisible by mutableStateOf(false)
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

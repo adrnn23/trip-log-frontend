@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TripLogTheme {
                 Surface(
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.background
                 ) {
                     AppNavigation()
                 }

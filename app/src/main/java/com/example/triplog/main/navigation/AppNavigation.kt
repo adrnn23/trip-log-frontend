@@ -22,7 +22,7 @@ sealed class Screen(val destination: String) {
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = Screen.UserProfileScreen.destination) {
+    NavHost(navController = navController, startDestination = Screen.LoginScreen.destination) {
         composable(route = Screen.SplashScreen.destination) {
             SplashScreen(navController = navController)
         }

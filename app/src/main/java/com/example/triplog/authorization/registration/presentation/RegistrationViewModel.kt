@@ -35,6 +35,9 @@ class RegistrationViewModel(private val repository: InterfaceRepository) : ViewM
     var registrationResult by mutableStateOf<RegistrationResult?>(null)
     private var registrationRequest by mutableStateOf(RegistrationRequest(username, email, password, repeatedPassword, deviceName))
 
+    var isErrorsVisible by mutableStateOf(false)
+    var isProgressIndicatorVisible by mutableStateOf(false)
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

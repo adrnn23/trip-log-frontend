@@ -1,6 +1,5 @@
 package com.example.triplog.authorization.registration.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,10 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -44,27 +39,23 @@ import com.example.triplog.main.navigation.Screen
 @Composable
 fun RegistrationScreen(navController: NavController) {
     val viewModel: RegistrationViewModel = viewModel(factory = RegistrationViewModel.Factory)
-    var showErrors by remember { mutableStateOf(false) }
-    var showProgressIndicator by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel.registrationState) {
         if (viewModel.registrationState == RegistrationState.Error) {
-            if (viewModel.registrationResult?.resultCode == 422) {
-                showErrors = true
-            }
+            if (viewModel.registrationResult?.resultCode == 422)
+                viewModel.isErrorsVisible = true
         }
         if (viewModel.registrationState == RegistrationState.Registered) {
-            if (viewModel.registrationResult != null) {
-                showErrors = false
+            if (viewModel.registrationResult != null){
+                viewModel.isErrorsVisible = false
+                navController.navigate(Screen.UserProfileScreen.destination)
             }
         }
     }
     LaunchedEffect(viewModel.loadingState) {
-        if (viewModel.loadingState == LoadingState.Loading && viewModel.registrationState != RegistrationState.Registered) {
-            showProgressIndicator = true
-        } else {
-            showProgressIndicator = false
-        }
+        if (viewModel.loadingState == LoadingState.Loading && viewModel.registrationState != RegistrationState.Registered)
+            viewModel.isProgressIndicatorVisible = true
+         else viewModel.isProgressIndicatorVisible = false
     }
 
     Column(
@@ -114,7 +105,7 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
-            if (showErrors) {
+            if (viewModel.isErrorsVisible) {
                 if (viewModel.registrationResult?.errors?.name != null) {
                     ErrorDetails(error = viewModel.registrationResult?.errors?.name!![0].toString())
                 }
@@ -128,7 +119,7 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
-            if (showErrors) {
+            if (viewModel.isErrorsVisible) {
                 if (viewModel.registrationResult?.errors?.email != null) {
                     ErrorDetails(error = viewModel.registrationResult?.errors?.email!![0].toString())
                 }
@@ -141,7 +132,7 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
-            if (showErrors) {
+            if (viewModel.isErrorsVisible) {
                 if (viewModel.registrationResult?.errors?.password != null) {
                     ErrorDetails(error = viewModel.registrationResult?.errors?.password!![0].toString())
                 }
@@ -154,7 +145,7 @@ fun RegistrationScreen(navController: NavController) {
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
-            if (showErrors) {
+            if (viewModel.isErrorsVisible) {
                 if (viewModel.registrationResult?.errors?.password != null) {
                     ErrorDetails(error = viewModel.registrationResult?.errors?.password!![0].toString())
                 }
@@ -178,7 +169,7 @@ fun RegistrationScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            if (showProgressIndicator) {
+            if (viewModel.isProgressIndicatorVisible) {
                 LinearIndicator()
             }
         }
