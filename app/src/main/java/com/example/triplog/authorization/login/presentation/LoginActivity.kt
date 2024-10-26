@@ -42,28 +42,11 @@ fun LoginScreen(navController: NavController) {
     val viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
 
     LaunchedEffect(viewModel.loginState) {
-        if (viewModel.loginState == LoginState.Error || viewModel.loginState == LoginState.Unauthorized) {
-            if (viewModel.loginResult?.resultCode == 422) {
-                viewModel.isErrorsVisible = true
-                viewModel.isUnauthorizedDialogVisible = false
-            } else if (viewModel.loginResult?.resultCode == 401) {
-                viewModel.isUnauthorizedDialogVisible = true
-                viewModel.isErrorsVisible = false
-            }
-        }
-        if (viewModel.loginState == LoginState.Logged) {
-            if (viewModel.loginResult != null) {
-                viewModel.isErrorsVisible = false
-                viewModel.isUnauthorizedDialogVisible = false
-                navController.navigate(Screen.UserProfileScreen.destination)
-            }
-        }
+        viewModel.handleLoginState(navController)
     }
 
     LaunchedEffect(viewModel.loadingState) {
-        if (viewModel.loadingState == LoadingState.Loading && viewModel.loginState != LoginState.Logged) 
-            viewModel.isProgressIndicatorVisible = true
-         else viewModel.isProgressIndicatorVisible = false
+        viewModel.handleLoadingState()
     }
 
     if (viewModel.isUnauthorizedDialogVisible) {
@@ -77,7 +60,7 @@ fun LoginScreen(navController: NavController) {
                     tint = MaterialTheme.colorScheme.onErrorContainer
                 )
             },
-            containerColor = MaterialTheme.colorScheme.errorContainer,
+            containerColor = { MaterialTheme.colorScheme.errorContainer },
             onDismiss = {
                 viewModel.isUnauthorizedDialogVisible = false
                 viewModel.loginState = LoginState.NotLogged

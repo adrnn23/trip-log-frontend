@@ -8,11 +8,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavController
 import com.example.triplog.main.TripLogApplication
 import com.example.triplog.authorization.login.data.LoginRequest
 import com.example.triplog.authorization.login.data.LoginResult
+import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class LoginState {
@@ -23,9 +24,9 @@ enum class LoadingState {
     NotLoaded, Loading, Loaded
 }
 
-
 class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() {
 
+    var token by mutableStateOf("")
     var email by mutableStateOf("")
     var password by mutableStateOf("")
     private val deviceName by mutableStateOf("android")
@@ -56,24 +57,70 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
         loadingState = LoadingState.Loading
         viewModelScope.launch {
             try {
-                delay(500)
                 val result = repository.getLoginResult(loginRequest)
-                if ((result?.resultCode == 200) && (result.token != null)) {
-                    loginResult = result
-                    loginState = LoginState.Logged
-                } else if ((result?.resultCode == 422 && result.message != null) && (result.errors?.email != null || result.errors?.password != null)) {
-                    loginResult = result
-                    loginState = LoginState.Error
-                } else if (result?.resultCode == 401 && result.message != null) {
-                    loginResult = result
-                    loginState = LoginState.Unauthorized
-                } else {
-                    loginState = LoginState.NotLogged
-                }
+                processLoginResult(result)
             } catch (e: Exception) {
                 loginState = LoginState.Error
+            } finally {
+                loadingState = LoadingState.Loaded
             }
-            loadingState = LoadingState.Loaded
         }
+    }
+
+    fun handleLoginState(navController: NavController) {
+        when (loginState) {
+            LoginState.Error -> {
+                if (loginResult?.resultCode == 422) {
+                    isErrorsVisible = true
+                    isUnauthorizedDialogVisible = false
+                }
+            }
+
+            LoginState.Unauthorized -> {
+                if (loginResult?.resultCode == 401) {
+                    isErrorsVisible = false
+                    isUnauthorizedDialogVisible = true
+                }
+            }
+
+            LoginState.Logged -> {
+                if (loginResult?.resultCode == 200 && loginResult != null) {
+                    isErrorsVisible = false
+                    isUnauthorizedDialogVisible = false
+                    navController.navigate("${Screen.ProfileScreen.destination}/$token")
+                }
+            }
+
+            LoginState.NotLogged -> {}
+        }
+    }
+
+    private fun processLoginResult(result: LoginResult?) {
+        loginResult = result
+        when (loginResult?.resultCode) {
+            200 -> {
+                if (loginResult?.token != null) {
+                    token = loginResult?.token ?: ""
+                    loginState = LoginState.Logged
+                }
+            }
+
+            401 -> {
+                if (loginResult?.message != null)
+                    loginState = LoginState.Unauthorized
+            }
+
+            422 -> {
+                if (loginResult?.message != null)
+                    loginState = LoginState.Error
+            }
+
+            else -> loginState = LoginState.NotLogged
+        }
+    }
+
+    fun handleLoadingState() {
+        isProgressIndicatorVisible =
+            loadingState == LoadingState.Loading && loginState != LoginState.Logged
     }
 }

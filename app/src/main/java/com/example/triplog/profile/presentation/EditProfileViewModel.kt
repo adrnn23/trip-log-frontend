@@ -1,5 +1,6 @@
 package com.example.triplog.profile.presentation
 
+import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Facebook
 import androidx.compose.material.icons.filled.Link
@@ -8,58 +9,85 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.triplog.authorization.login.presentation.LoadingState
 import com.example.triplog.main.TripLogApplication
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.ErrorData
-import com.example.triplog.profile.data.TravelPreferenceData
+import com.example.triplog.profile.data.profile.EditUserProfileRequest
+import com.example.triplog.profile.data.profile.TravelPreferencesResult
+import com.example.triplog.profile.data.profile.UserProfileResult.TravelPreference
+import com.example.triplog.profile.data.updatePassword.UpdatePasswordRequest
+import com.example.triplog.profile.data.updatePassword.UpdatePasswordResult
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class EditProfileSection {
-    Main, EditTravelPreferences, EditBiography
+    Main, EditTravelPreferences, EditBiography, UpdatePassword, EditBasicInformation
 }
 
-class EditProfileViewModel(private val repository: InterfaceRepository) : ViewModel() {
+enum class UpdatePasswordState {
+    NotUpdated, Updated, Error, ValidationError
+}
+
+enum class EditProfileState {
+    NotUpdated, Updated, Error, ValidationError
+}
+
+class EditProfileViewModel(private val repository: InterfaceRepository, var token: String?) :
+    ViewModel() {
+
+    fun initParams(iId: Int?, iEmail: String?) {
+        id = iId
+        email = iEmail
+        getUserProfileResult()
+    }
+
+    var isProgressIndicatorVisible by mutableStateOf(false)
+
+    var updatePasswordResult by mutableStateOf<UpdatePasswordResult?>(null)
+    var updatePasswordState by mutableStateOf(UpdatePasswordState.NotUpdated)
+
+    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
     var section by mutableStateOf(EditProfileSection.Main)
 
-    var username by mutableStateOf("username123")
-    var usernameTemp by mutableStateOf("")
+    var username by mutableStateOf<String>("")
+    var id by mutableStateOf<Int?>(null)
+    var bio by mutableStateOf<String>("")
+    var email by mutableStateOf<String?>("")
 
-    var email by mutableStateOf("username123@example.com")
-    var emailTemp by mutableStateOf("")
 
-    var bio by mutableStateOf("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam enim enim, hendrerit in mauris id, molestie blandit metus. Donec ultricies neque et dolor auctor, in condimentum eros consequat. Maecenas aliquet ornare dui, sit amet finibus velit molestie eu. Phasellus interdum eros quis ultricies semper. Donec nec risus sed dui pharetra rutrum non id sem. Donec congue dictum nunc, ac vulputate mi mattis nec. Nam sed magna sodales augue semper finibus et vitae tortor. Nullam tristique dui risus.")
-    var bioTemp by mutableStateOf("")
-
-    var selectedTravelPreferences = mutableListOf<String?>()
-    var travelPreferencesList by mutableStateOf(
+    var links by mutableStateOf(
         mutableListOf(
-            TravelPreferenceData("Solo travel", false),
-            TravelPreferenceData("Family travel", false),
-            TravelPreferenceData("Group travel", false),
-            TravelPreferenceData("Last minute travel", false),
-            TravelPreferenceData("Train travel", false),
-            TravelPreferenceData("Bike travel", false),
-            TravelPreferenceData("Car travel", false),
-            TravelPreferenceData("Air travel", false),
-            TravelPreferenceData("Hiking", false),
-            TravelPreferenceData("Leisure travel", false),
-            TravelPreferenceData("Cultural travel", false),
-            TravelPreferenceData("Sea travel", false),
-            TravelPreferenceData("Mountains", false),
-            TravelPreferenceData("Lakes", false),
-            TravelPreferenceData("Seas", false),
-            TravelPreferenceData("National Parks", false),
-            TravelPreferenceData("Deserts", false),
-            TravelPreferenceData("Cities", false),
-            TravelPreferenceData("Islands", false),
-            TravelPreferenceData("Natural areas", false),
-            TravelPreferenceData("Villages", false)
+            LinkData("Facebook", Icons.Default.Facebook, ""),
+            LinkData("Instagram", Icons.Default.Link, ""),
+            LinkData("X", Icons.Default.Link, "")
         )
     )
+    var facebookLink by mutableStateOf<String?>("")
+    var instagramLink by mutableStateOf<String?>("")
+    var xLink by mutableStateOf<String?>("")
 
-    var links = mutableListOf<LinkData?>()
+    // Travel preferences result from backend server
+    var travelPreferencesResult by mutableStateOf<TravelPreferencesResult?>(null)
+
+    // User's travel preferences
+    var userTravelPreferences: List<TravelPreference?>? = listOf()
+
+    // Travel preferences lists used for operations in app
+    var travelPreferencesList by mutableStateOf(mutableListOf<TravelPreference?>())
+    var tempTravelPreferencesList by mutableStateOf(mutableListOf<TravelPreference?>())
+
+    var usernameTemp by mutableStateOf("")
+    var emailTemp by mutableStateOf("")
+    var bioTemp by mutableStateOf("")
+
+    var currentPassword by mutableStateOf("")
+    var newPassword by mutableStateOf("")
+    var repeatedNewPassword by mutableStateOf("")
 
     var isUsernameDialogVisible by mutableStateOf(false)
     var isEmailDialogVisible by mutableStateOf(false)
@@ -70,90 +98,179 @@ class EditProfileViewModel(private val repository: InterfaceRepository) : ViewMo
     var errorMessage by mutableStateOf(ErrorData(false, null, ""))
 
     companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
+        fun provideFactory(
+            token: String?,
+        ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application =
                     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
                 val repository = application.container.repository
-                EditProfileViewModel(repository = repository)
+                EditProfileViewModel(repository = repository, token = token)
             }
         }
-    }
-
-    fun travelPreferencesListInitialization(
-        selectedTravelPreferences: MutableList<String?>,
-        travelPreferencesList: MutableList<TravelPreferenceData>
-    ): MutableList<TravelPreferenceData> {
-        travelPreferencesList.forEach { item ->
-            if (selectedTravelPreferences.contains(item.name)) {
-                item.selected = true
-            }
-        }
-        return travelPreferencesList
     }
 
     fun addNewLink(
         site: String,
         link: String,
-        sites: List<String>,
         onShowDialogChange: (Boolean) -> Unit,
         onClearInputs: () -> Unit,
         onErrorValidation: () -> Unit,
     ) {
         if (site.isNotEmpty() && link.isNotEmpty()) {
             var formattedLink = link.lowercase()
-            when (site) {
-                sites[0] -> {
-                    if (formattedLink.contains("facebook.com")) {
-                        if (!formattedLink.startsWith("https://"))
-                            formattedLink = "https://$formattedLink"
-
-                        links.add(LinkData(site, Icons.Default.Facebook, formattedLink))
-                        errorMessage = ErrorData(false, null, "")
-                        onClearInputs()
-                        onShowDialogChange(false)
-                    } else {
-                        onShowDialogChange(false)
-                        onErrorValidation()
-                    }
-                }
-
-                sites[1] -> {
-                    if (formattedLink.contains("instagram.com")) {
-                        if (!formattedLink.startsWith("https://"))
-                            formattedLink = "https://$formattedLink"
-
-                        links.add(LinkData(site, Icons.Default.Link, formattedLink))
-                        errorMessage = ErrorData(false, null, "")
-                        onClearInputs()
-                        onShowDialogChange(false)
-                    } else {
-                        onShowDialogChange(false)
-                        onErrorValidation()
-                    }
-                }
-
-                else -> {
-                    if (formattedLink.contains("x.com")) {
-                        if (!formattedLink.startsWith("https://"))
-                            formattedLink = "https://$formattedLink"
-
-                        links.add(LinkData(site, Icons.Default.Link, formattedLink))
-                        errorMessage = ErrorData(false, null, "")
-                        onClearInputs()
-                        onShowDialogChange(false)
-                    } else {
-                        onShowDialogChange(false)
-                        onErrorValidation()
-                    }
-                }
+            if (!formattedLink.startsWith("https://")) {
+                formattedLink = "https://$formattedLink"
             }
-        }
-        else{
+            when (site) {
+                "Facebook" -> links[0] = LinkData(site, Icons.Default.Facebook, formattedLink)
+                "Instagram" -> links[1] = LinkData(site, Icons.Default.Link, formattedLink)
+                "X" -> links[2] = LinkData(site, Icons.Default.Link, formattedLink)
+                else -> onErrorValidation()
+            }
+            onClearInputs()
+            onShowDialogChange(false)
+        } else {
             onShowDialogChange(false)
             onErrorValidation()
         }
     }
 
-    fun editUserProfile() {}
+
+    fun linksInit(facebookLink: String?, instagramLink: String?, xLink: String?) {
+        links[0] = LinkData("Facebook", Icons.Default.Facebook, facebookLink ?: "")
+        links[1] = LinkData("Instagram", Icons.Default.Link, instagramLink ?: "")
+        links[2] = LinkData("X", Icons.Default.Link, xLink ?: "")
+    }
+
+
+    private fun prepareTravelPrefToSend(): List<String?> {
+        val travelPrefIndexes = mutableListOf<String?>()
+        travelPreferencesList.forEach { item ->
+            if (item != null) {
+                if (item.isSelected)
+                    travelPrefIndexes.add(item.id.toString())
+            }
+        }
+        return travelPrefIndexes
+    }
+
+    private fun getUserProfileResult() {
+        loadingState = LoadingState.Loading
+        viewModelScope.launch {
+            val result = repository.getUserProfileResult(token, id!!)
+            if (result != null) {
+                if (result.resultCode == 200 && (result.id != null) && (result.name != null) && (result.bio != null)) {
+                    username = result.name
+                    id = result.id
+                    bio = result.bio
+                    userTravelPreferences = result.travelPreferences ?: emptyList()
+                    getTravelPreferences()
+                    facebookLink = result.facebookLink
+                    instagramLink = result.instagramLink
+                    xLink = result.xLink
+
+                    linksInit(result.facebookLink, result.instagramLink, result.xLink)
+                } else if (result.resultCode == 401 && result.message != null) {
+
+                } else if (result.resultCode == 404 && result.message != null) {
+
+                } else {
+
+                }
+            }
+            delay(200)
+            loadingState = LoadingState.Loaded
+        }
+    }
+
+    fun updatePassword() {
+        viewModelScope.launch {
+            try {
+                val request =
+                    UpdatePasswordRequest(currentPassword, newPassword, repeatedNewPassword)
+                val result = repository.updatePassword(token, request)
+                updatePasswordResult = result
+                if ((updatePasswordResult?.resultCode == 200) && (updatePasswordResult?.message != null)) {
+                    currentPassword = ""
+                    newPassword = ""
+                    repeatedNewPassword = ""
+                    updatePasswordState = UpdatePasswordState.Updated
+                } else if (updatePasswordResult?.resultCode == 400 && updatePasswordResult?.message != null) {
+                    updatePasswordState = UpdatePasswordState.Error
+                } else if (updatePasswordResult?.resultCode == 422 && updatePasswordResult?.message != null) {
+                    updatePasswordState = UpdatePasswordState.ValidationError
+                } else {
+                    updatePasswordState = UpdatePasswordState.NotUpdated
+                }
+            } catch (e: Exception) {
+                updatePasswordState = UpdatePasswordState.Error
+            }
+        }
+    }
+
+    fun getTravelPreferences() {
+        viewModelScope.launch {
+            val result = repository.getTravelPreferences(token)
+            travelPreferencesResult = result
+            when (result?.resultCode) {
+                200 -> {
+                    travelPreferencesResult?.travelPreference?.forEach { item ->
+                        val travelPreference = TravelPreference(id = item?.id, name = item?.name,
+                            isSelected = userTravelPreferences?.any { it?.id == item?.id } ?: false
+                        )
+                        travelPreferencesList.add(travelPreference)
+                    }
+                }
+
+                401 -> {
+
+                }
+
+                else -> {
+
+                }
+            }
+        }
+    }
+
+    fun editUserProfile() {
+        loadingState = LoadingState.Loading
+        viewModelScope.launch {
+            val travelPreferences = prepareTravelPrefToSend()
+            val request = EditUserProfileRequest(
+                avatar = "",
+                bio = bio,
+                email = email,
+                name = username,
+                facebookLink = links[0].link,
+                instagramLink = links[1].link,
+                xLink = links[2].link,
+                travelPreferences = travelPreferences
+            )
+            val result = repository.editUserProfile(token, id!!, request)
+            if (result != null) {
+                if (result.resultCode == 200 && (result.id != null) && (result.name != null) && (result.bio != null)) {
+                    username = result.name
+                    bio = result.bio
+                    userTravelPreferences =
+                        (result.travelPreferences ?: emptyList()) as List<TravelPreference?>?
+                    linksInit(result.facebookLink, result.instagramLink, result.xLink)
+                } else if (result.resultCode == 401 && result.message != null) {
+
+                } else if (result.resultCode == 422 && result.message != null) {
+
+                } else {
+
+                }
+            }
+            delay(200)
+            loadingState = LoadingState.Loaded
+        }
+    }
+
+    fun handleLoadingState() {
+        isProgressIndicatorVisible =
+            loadingState == LoadingState.Loading
+    }
 }

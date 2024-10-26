@@ -13,8 +13,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,7 +53,7 @@ fun UsernameInput(
     @StringRes label: Int,
     value: String,
     onValueChanged: (String) -> Unit,
-    enabled:Boolean,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val usernameIcon = @Composable {
@@ -63,7 +63,7 @@ fun UsernameInput(
             tint = MaterialTheme.colorScheme.primary
         )
     }
-    TextField(
+    OutlinedTextField(
         label = { Text(stringResource(label)) },
         value = value,
         onValueChange = onValueChanged,
@@ -92,7 +92,7 @@ fun EmailInput(
             tint = MaterialTheme.colorScheme.primary
         )
     }
-    TextField(
+    OutlinedTextField(
         label = { Text(stringResource(label)) },
         value = value,
         onValueChange = onValueChanged,
@@ -120,7 +120,7 @@ fun PasswordInput(
             tint = MaterialTheme.colorScheme.primary
         )
     }
-    TextField(
+    OutlinedTextField(
         label = { Text(stringResource(label)) },
         value = value,
         onValueChange = onValueChanged,

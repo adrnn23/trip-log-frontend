@@ -14,10 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
@@ -56,7 +53,7 @@ fun EditBiographySection(innerpadding: PaddingValues, viewModel: EditProfileView
                     tint = MaterialTheme.colorScheme.onErrorContainer
                 )
             },
-            containerColor = MaterialTheme.colorScheme.errorContainer,
+            containerColor = { MaterialTheme.colorScheme.errorContainer },
             onDismiss = { viewModel.errorMessage = ErrorData(false, null, "") },
             onConfirmClick = { viewModel.errorMessage = ErrorData(false, null, "") }
         )

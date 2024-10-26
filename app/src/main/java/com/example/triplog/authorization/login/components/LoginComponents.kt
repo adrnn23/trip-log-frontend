@@ -40,7 +40,7 @@ fun InformationDialog(
     @StringRes title: Int,
     text: @Composable () -> Unit,
     icon: @Composable () -> Unit,
-    containerColor: Color,
+    containerColor: @Composable () -> Color,
     onDismiss: () -> Unit,
     onConfirmClick: () -> Unit
 ) {
@@ -48,7 +48,7 @@ fun InformationDialog(
         title = { Text(stringResource(title)) },
         text = { text() },
         icon = { icon() },
-        containerColor = containerColor,
+        containerColor =  containerColor(),
         onDismissRequest = { onDismiss() },
         confirmButton = {
             TextButton(

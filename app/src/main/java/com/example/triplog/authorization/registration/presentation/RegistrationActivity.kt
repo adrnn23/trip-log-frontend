@@ -29,7 +29,6 @@ import com.example.triplog.R
 import com.example.triplog.authorization.login.components.ButtonDivider
 import com.example.triplog.authorization.login.components.ErrorDetails
 import com.example.triplog.authorization.login.components.LinearIndicator
-import com.example.triplog.authorization.login.presentation.LoadingState
 import com.example.triplog.authorization.registration.components.EmailInput
 import com.example.triplog.authorization.registration.components.PasswordInput
 import com.example.triplog.authorization.registration.components.RegistrationActivityButton
@@ -41,21 +40,10 @@ fun RegistrationScreen(navController: NavController) {
     val viewModel: RegistrationViewModel = viewModel(factory = RegistrationViewModel.Factory)
 
     LaunchedEffect(viewModel.registrationState) {
-        if (viewModel.registrationState == RegistrationState.Error) {
-            if (viewModel.registrationResult?.resultCode == 422)
-                viewModel.isErrorsVisible = true
-        }
-        if (viewModel.registrationState == RegistrationState.Registered) {
-            if (viewModel.registrationResult != null){
-                viewModel.isErrorsVisible = false
-                navController.navigate(Screen.UserProfileScreen.destination)
-            }
-        }
+        viewModel.handleRegistrationState(navController)
     }
     LaunchedEffect(viewModel.loadingState) {
-        if (viewModel.loadingState == LoadingState.Loading && viewModel.registrationState != RegistrationState.Registered)
-            viewModel.isProgressIndicatorVisible = true
-         else viewModel.isProgressIndicatorVisible = false
+        viewModel.handleLoadingState()
     }
 
     Column(

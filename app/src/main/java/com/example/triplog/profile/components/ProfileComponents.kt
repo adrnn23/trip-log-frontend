@@ -61,6 +61,8 @@ import com.example.triplog.R
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.TravelNavigationElementData
+import com.example.triplog.profile.data.profile.UserProfileResult
+import com.example.triplog.profile.presentation.ProfileViewModel
 
 @Composable
 fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int) {
@@ -100,9 +102,9 @@ fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int) {
 }
 
 @Composable
-fun ProfileUsername() {
+fun ProfileUsername(username: String?) {
     Text(
-        text = "Username123",
+        text = username.toString(),
         fontSize = 18.sp
     )
 }
@@ -130,11 +132,10 @@ fun TravelNavigation() {
             TravelNavigationElement(item.icon, item.label)
         }
     }
-
 }
 
 @Composable
-fun TravelPreferencesComponent(list: MutableList<String?>, modifier: Modifier) {
+fun TravelPreferencesComponent(viewModel: ProfileViewModel, modifier: Modifier) {
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Center,
@@ -149,23 +150,25 @@ fun TravelPreferencesComponent(list: MutableList<String?>, modifier: Modifier) {
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(4.dp))
-            if (list.isNotEmpty()) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(42.dp, 108.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(list) { item ->
-                        if (item != null) {
-                            TravelPreferenceCard(item)
+            if (viewModel.travelPreferences != null) {
+                if (viewModel.travelPreferences!!.isNotEmpty()) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(42.dp, 108.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(viewModel.travelPreferences!!) { item ->
+                            if (item != null) {
+                                TravelPreferenceCard(item)
+                            }
                         }
                     }
+                } else {
+                    Text(text = stringResource(R.string.addTravelPreferences), fontSize = 12.sp)
                 }
-            } else {
-                Text(text = stringResource(R.string.addTravelPreferences), fontSize = 12.sp)
             }
         }
     }
@@ -173,9 +176,7 @@ fun TravelPreferencesComponent(list: MutableList<String?>, modifier: Modifier) {
 
 @Composable
 fun ProfileMainInfoComponent(
-    count1: Int,
-    count2: Int,
-    list: MutableList<String?>,
+    viewModel: ProfileViewModel,
     navController: NavController
 ) {
     Column(
@@ -204,29 +205,32 @@ fun ProfileMainInfoComponent(
             )
             Spacer(modifier = Modifier.width(20.dp))
             Column {
-                ProfileUsername()
+                ProfileUsername(viewModel.username)
                 Spacer(modifier = Modifier.height(4.dp))
-                EditProfileButton(navController)
+                EditProfileButton(navController, viewModel)
             }
         }
         DividerComponent()
         Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
-            StatisticCard(tripsNumber = count1, label = R.string.travels)
+            StatisticCard(tripsNumber = viewModel.tripsCount, label = R.string.travels)
             Spacer(modifier = Modifier.width(8.dp))
-            StatisticCard(tripsNumber = count2, label = R.string.planned)
+            StatisticCard(tripsNumber = viewModel.plannedCount, label = R.string.planned)
             Spacer(modifier = Modifier.width(8.dp))
-            StatisticCard(tripsNumber = count2, label = R.string.travelAdvices)
+            StatisticCard(tripsNumber = viewModel.favoriteCount, label = R.string.favorite)
         }
         DividerComponent()
-        TravelPreferencesComponent(list, Modifier)
+        TravelPreferencesComponent(viewModel, Modifier)
     }
 }
 
 @Composable
-fun EditProfileButton(navController: NavController) {
-    Button(shape = RoundedCornerShape(10.dp),
+fun EditProfileButton(navController: NavController, viewModel: ProfileViewModel) {
+    Button(
+        shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiaryContainer),
-        onClick = { navController.navigate(Screen.EditProfileScreen.destination) }) {
+        onClick = {
+            navController.navigate("${Screen.EditProfileScreen.destination}/${viewModel.token}/${viewModel.id}/${viewModel.email}")
+        }) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -356,7 +360,7 @@ fun TitleComponent(
 }
 
 @Composable
-fun StatisticCard(tripsNumber: Int, @StringRes label: Int) {
+fun StatisticCard(tripsNumber: Int?, @StringRes label: Int) {
     Card {
         Column(
             verticalArrangement = Arrangement.Center,
@@ -374,7 +378,7 @@ fun StatisticCard(tripsNumber: Int, @StringRes label: Int) {
 }
 
 @Composable
-fun AboutMeComponent(bio: String) {
+fun AboutMeComponent(bio: String?) {
     var extended by remember { mutableStateOf(false) }
 
     Column(
@@ -392,7 +396,7 @@ fun AboutMeComponent(bio: String) {
                 modifier = Modifier
             )
             Spacer(modifier = Modifier.width(4.dp))
-            if (bio.length > 192) {
+            if (bio != null && bio.length > 192) {
                 Icon(
                     imageVector = if (extended) {
                         Icons.Default.KeyboardArrowUp
@@ -406,13 +410,22 @@ fun AboutMeComponent(bio: String) {
                 )
             }
         }
-        if (bio.length > 192) {
-            if (!extended) {
-                Column {
-                    Text(
-                        text = bio.substring(0, 191) + "...",
-                        fontSize = 12.sp,
-                    )
+        if (bio != null) {
+            if (bio.length > 192) {
+                if (!extended) {
+                    Column {
+                        Text(
+                            text = bio.substring(0, 191) + "...",
+                            fontSize = 12.sp,
+                        )
+                    }
+                } else {
+                    Column {
+                        Text(
+                            text = bio,
+                            fontSize = 12.sp,
+                        )
+                    }
                 }
             } else {
                 Column {
@@ -422,19 +435,12 @@ fun AboutMeComponent(bio: String) {
                     )
                 }
             }
-        } else {
-            Column {
-                Text(
-                    text = bio,
-                    fontSize = 12.sp,
-                )
-            }
         }
     }
 }
 
 @Composable
-fun TravelPreferenceCard(category: String) {
+fun TravelPreferenceCard(travelPreference: UserProfileResult.TravelPreference) {
     Card(
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer),
         shape = RoundedCornerShape(5.dp)
@@ -446,11 +452,13 @@ fun TravelPreferenceCard(category: String) {
                 .fillMaxSize(1f)
                 .heightIn(32.dp)
         ) {
-            Text(
-                text = category,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
+            travelPreference.name?.let {
+                Text(
+                    text = it,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

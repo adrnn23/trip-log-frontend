@@ -60,7 +60,7 @@ fun EditTravelPreferencesSection(innerpadding: PaddingValues, viewModel: EditPro
                     tint = MaterialTheme.colorScheme.onErrorContainer
                 )
             },
-            containerColor = MaterialTheme.colorScheme.errorContainer,
+            containerColor = { MaterialTheme.colorScheme.errorContainer },
             onDismiss = { viewModel.errorMessage = ErrorData(false, null, "") },
             onConfirmClick = { viewModel.errorMessage = ErrorData(false, null, "") }
         )
@@ -76,16 +76,16 @@ fun EditTravelPreferencesSection(innerpadding: PaddingValues, viewModel: EditPro
         verticalArrangement = Arrangement.Top
     ) {
         LazyColumn {
-            items(viewModel.travelPreferencesList.size) { i ->
+            items(viewModel.tempTravelPreferencesList.size) { i ->
                 Column {
                     Row(horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clickable {
-                                viewModel.travelPreferencesList = viewModel.travelPreferencesList
+                                viewModel.tempTravelPreferencesList = viewModel.tempTravelPreferencesList
                                     .mapIndexed { j, item ->
                                         if (i == j) {
-                                            item.copy(selected = !item.selected)
+                                            item?.copy(isSelected = !item.isSelected)
                                         } else item
                                     }
                                     .toMutableList()
@@ -93,8 +93,8 @@ fun EditTravelPreferencesSection(innerpadding: PaddingValues, viewModel: EditPro
                             .fillMaxWidth()
                             .padding(8.dp)
                     ) {
-                        Text(text = viewModel.travelPreferencesList[i].name, fontSize = 18.sp)
-                        if (viewModel.travelPreferencesList[i].selected) {
+                        Text(text = viewModel.tempTravelPreferencesList[i]?.name ?: "", fontSize = 18.sp)
+                        if (viewModel.tempTravelPreferencesList[i]?.isSelected == true) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,

@@ -70,4 +70,21 @@
     <string name="linksNumber">Number of links must be equal to or less than 3.</string>
     <string name="siteAndLink">Link must match to the site.</string>
 
+    <string name="travelName">Travel name</string>
+    <string name="travelDescription">Travel description</string>
+    <string name="travelDate">Date of travel</string>
+    <string name="editBasicInformation">Edit basic information</string>
+    <string name="travelPhoto">Travel photo</string>
+    <string name="changeTravelPhoto">Change travel photo</string>
+    <string name="travelPlaces">Travel places</string>
+    <string name="addNewPlace">Add new place</string>
+    <string name="editPlaces">Edit places</string>
+
+    <string name="updatePassword">Update password</string>
+    <string name="updateYourPassword">Update your password</string>
+    <string name="currentPassword">Current password</string>
+    <string name="newPassword">New password</string>
+    <string name="repeatedNewPassword">Repeat new password</string>
+    <string name="updatePasswordInformation">Password update information</string>
+
 </resources>
