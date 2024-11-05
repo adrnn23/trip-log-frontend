@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.example.triplog.main.presentation.SplashScreen
 import com.example.triplog.authorization.login.presentation.LoginScreen
 import com.example.triplog.authorization.registration.presentation.RegistrationScreen
+import com.example.triplog.main.presentation.MainPageScreen
 import com.example.triplog.profile.presentation.EditProfileScreen
 import com.example.triplog.profile.presentation.ProfileScreen
 
@@ -19,6 +20,7 @@ sealed class Screen(val destination: String) {
     data object SplashScreen : Screen("SplashScreen")
     data object EditProfileScreen : Screen("EditProfileScreen")
     data object CreateTravelScreen : Screen("CreateTravelScreen")
+    data object MainPageScreen : Screen("MainPageScreen")
 }
 
 @Composable
@@ -39,11 +41,18 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "${Screen.ProfileScreen.destination}/{token}",
-            arguments = listOf(navArgument("token") { type = NavType.StringType })
+            route = "${Screen.ProfileScreen.destination}/{token}/{email}/{id}",
+            arguments = listOf(
+                navArgument("token") { type = NavType.StringType },
+                navArgument("email") { type = NavType.StringType },
+                navArgument("id") { type = NavType.IntType })
         ) { backStackEntry ->
             val token = backStackEntry.arguments?.getString("token")
-            ProfileScreen(navController = navController, token = token)
+            val email = backStackEntry.arguments?.getString("email")
+            val id = backStackEntry.arguments?.getInt("id")
+            if (token != null && id != null && email != null) {
+                ProfileScreen(navController = navController, token = token, id = id, email = email)
+            }
         }
         composable(
             route = "${Screen.EditProfileScreen.destination}/{token}/{id}/{email}",
@@ -55,10 +64,17 @@ fun AppNavigation() {
             val token = backStackEntry.arguments?.getString("token")
             val id = backStackEntry.arguments?.getInt("id")
             val email = backStackEntry.arguments?.getString("email")
-            EditProfileScreen(navController = navController, token = token, id=id, email=email)
+            if (token != null && id != null && email != null) {
+                EditProfileScreen(
+                    navController = navController,
+                    token = token,
+                    id = id,
+                    email = email
+                )
+            }
         }
-        composable(route = Screen.CreateTravelScreen.destination) {
-
+        composable(route = Screen.MainPageScreen.destination) {
+            MainPageScreen(navController = navController)
         }
     }
 }

@@ -9,22 +9,26 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
-import com.example.triplog.main.TripLogApplication
 import com.example.triplog.authorization.login.data.LoginRequest
 import com.example.triplog.authorization.login.data.LoginResult
+import com.example.triplog.main.SessionManager
+import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.navigation.Screen
+import com.example.triplog.main.states.LoadingState
 import com.example.triplog.network.InterfaceRepository
 import kotlinx.coroutines.launch
 
-enum class LoginState {
-    NotLogged, Logged, Error, Unauthorized
+sealed class LoginState {
+    data object NotLogged : LoginState()
+    data object Logged : LoginState()
+    data object Error : LoginState()
+    data object Unauthorized : LoginState()
 }
 
-enum class LoadingState {
-    NotLoaded, Loading, Loaded
-}
-
-class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() {
+class LoginViewModel(
+    private val repository: InterfaceRepository,
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
     var token by mutableStateOf("")
     var email by mutableStateOf("")
@@ -47,14 +51,15 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
                 val application =
                     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
                 val repository = application.container.repository
-                LoginViewModel(repository = repository)
+                val sessionManager = application.sessionManager
+                LoginViewModel(repository = repository, sessionManager = sessionManager)
             }
         }
     }
 
     fun login() {
-        loginRequest = LoginRequest(email, password, deviceName)
         loadingState = LoadingState.Loading
+        loginRequest = LoginRequest(email, password, deviceName)
         viewModelScope.launch {
             try {
                 val result = repository.getLoginResult(loginRequest)
@@ -87,7 +92,8 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
                 if (loginResult?.resultCode == 200 && loginResult != null) {
                     isErrorsVisible = false
                     isUnauthorizedDialogVisible = false
-                    navController.navigate("${Screen.ProfileScreen.destination}/$token")
+                    navController.popBackStack()
+                    navController.navigate(Screen.MainPageScreen.destination)
                 }
             }
 
@@ -101,6 +107,7 @@ class LoginViewModel(private val repository: InterfaceRepository) : ViewModel() 
             200 -> {
                 if (loginResult?.token != null) {
                     token = loginResult?.token ?: ""
+                    sessionManager.saveToken(token)
                     loginState = LoginState.Logged
                 }
             }

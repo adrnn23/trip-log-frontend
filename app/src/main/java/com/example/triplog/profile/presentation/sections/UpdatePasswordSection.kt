@@ -42,22 +42,11 @@ fun UpdatePasswordSection(
     }
 
     if (viewModel.updatePasswordState != UpdatePasswordState.NotUpdated) {
-        var text = viewModel.updatePasswordResult?.message.toString() + "\n"
-        if (viewModel.updatePasswordState == UpdatePasswordState.ValidationError) {
-            if (viewModel.updatePasswordResult?.errors != null) {
-                viewModel.updatePasswordResult?.errors?.password?.forEach { item ->
-                    text += "\n - $item"
-                }
-                viewModel.updatePasswordResult?.errors?.oldPassword?.forEach { item ->
-                    text += "\n - $item"
-                }
-            }
-        }
         InformationDialog(
             R.string.updatePasswordInformation,
             text = {
                 Text(
-                    text = text,
+                    text = viewModel.backendResponse.value.errors,
                     fontSize = 14.sp,
                     color = if (viewModel.updatePasswordState == UpdatePasswordState.Updated) {
                         MaterialTheme.colorScheme.onTertiaryContainer
@@ -86,8 +75,16 @@ fun UpdatePasswordSection(
                 else
                     MaterialTheme.colorScheme.tertiaryContainer
             },
-            onDismiss = { viewModel.updatePasswordState = UpdatePasswordState.NotUpdated },
-            onConfirmClick = { viewModel.updatePasswordState = UpdatePasswordState.NotUpdated }
+            onDismiss = {
+                viewModel.clearBackendResponse()
+                viewModel.isBackendResponseVisible = false
+                viewModel.updatePasswordState = UpdatePasswordState.NotUpdated
+            },
+            onConfirmClick = {
+                viewModel.clearBackendResponse()
+                viewModel.isBackendResponseVisible = false
+                viewModel.updatePasswordState = UpdatePasswordState.NotUpdated
+            }
         )
     }
 

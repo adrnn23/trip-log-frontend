@@ -11,36 +11,64 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.triplog.authorization.login.presentation.LoadingState
-import com.example.triplog.authorization.login.presentation.LoginState
+import androidx.navigation.NavController
+import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
+import com.example.triplog.main.navigation.Screen
+import com.example.triplog.main.presentation.BackendResponse
+import com.example.triplog.main.states.LoadingState
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.profile.UserProfileResult.TravelPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class ProfileViewModel(private val repository: InterfaceRepository, val token: String?) :
+sealed class ProfileState {
+    data object Authenticated : ProfileState()
+    data object Unauthenticated : ProfileState()
+    data object Idle : ProfileState()
+    data object Error : ProfileState()
+    data object LoggedOut : ProfileState()
+}
+
+data class UserProfileData(
+    var username: String? = "",
+    var id: Int? = null,
+    var bio: String? = "",
+    var email: String? = "",
+    var tripsCount: Int? = null,
+    var plannedCount: Int? = null,
+    var favoriteCount: Int? = 0,
+    var travelPreferences: List<TravelPreference?>? = emptyList(),
+    var links: MutableList<LinkData?> = emptyList<LinkData?>().toMutableList()
+)
+
+
+class ProfileViewModel(
+    private val repository: InterfaceRepository,
+    val token: String?,
+    private val sessionManager: SessionManager
+) :
     ViewModel() {
 
-    init {
-        getAuthenticatedUserProfileData()
+    var profileState by mutableStateOf<ProfileState>(ProfileState.Idle)
+    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
+
+    var isProgressIndicatorVisible by mutableStateOf(false)
+    var isBackendResponseVisible by mutableStateOf(false)
+
+    var userProfile by mutableStateOf(UserProfileData())
+    var backendResponse = mutableStateOf(BackendResponse())
+
+    fun initParams(iId: Int?, iEmail: String?) {
+        userProfile.id = iId
+        userProfile.email = iEmail
+        getUserProfileResult()
     }
 
-    var loginState: LoginState by mutableStateOf(LoginState.NotLogged)
-    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
-    var isProgressIndicatorVisible by mutableStateOf(false)
-
-
-    var username by mutableStateOf<String?>(null)
-    var id by mutableStateOf<Int?>(null)
-    var bio by mutableStateOf<String?>(null)
-    var tripsCount by mutableStateOf<Int?>(null)
-    var plannedCount by mutableStateOf<Int?>(null)
-    var favoriteCount by mutableStateOf<Int?>(null)
-    var travelPreferences: List<TravelPreference?>? = listOf()
-    var links = mutableListOf<LinkData?>(null)
-    var email by mutableStateOf<String?>(null)
+    fun clearBackendResponse(){
+        backendResponse.value.clearResponse()
+    }
 
     companion object {
         fun provideFactory(
@@ -50,73 +78,125 @@ class ProfileViewModel(private val repository: InterfaceRepository, val token: S
                 val application =
                     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
                 val repository = application.container.repository
-                ProfileViewModel(repository = repository, token = token)
+                val sessionManager = application.sessionManager
+                ProfileViewModel(
+                    repository = repository,
+                    token = token,
+                    sessionManager = sessionManager
+                )
             }
         }
     }
 
-    private fun getAuthenticatedUserProfileData() {
-        viewModelScope.launch {
-            try {
-                val result = repository.getAuthenticatedUserProfileResult(token)
-                if ((result?.resultCode == 200) && (result.id != null) && (result.name != null) && (result.email != null)) {
-                    username = result.name
-                    email = result.email
-                    id = result.id
-                    loginState = LoginState.Logged
-                    getUserProfileResult()
-                } else if (result?.resultCode == 401 && result.message != null) {
-                    loginState = LoginState.Unauthorized
-                } else {
-                    loginState = LoginState.NotLogged
-                }
-            } catch (e: Exception) {
-                loginState = LoginState.Error
-            }
-        }
-    }
-
-    fun linksInit(facebookLink: String?, instagramLink: String?, xLink: String?) {
+    private fun linksInit(facebookLink: String?, instagramLink: String?, xLink: String?) {
         if (facebookLink != null) {
-            links.add(LinkData("Facebook", Icons.Default.Facebook, facebookLink))
+            userProfile.links.add(LinkData("Facebook", Icons.Default.Facebook, facebookLink))
         }
         if (instagramLink != null) {
-            links.add(LinkData("Instagram", Icons.Default.Link, instagramLink))
+            userProfile.links.add(LinkData("Instagram", Icons.Default.Link, instagramLink))
         }
         if (xLink != null) {
-            links.add(LinkData("X", Icons.Default.Link, xLink))
+            userProfile.links.add(LinkData("X", Icons.Default.Link, xLink))
         }
     }
+
+    fun logout() {
+        loadingState = LoadingState.Loading
+        viewModelScope.launch {
+            delay(250)
+            try {
+                val result = repository.getLogoutResult(token)
+                if ((result?.resultCode == 200) && (result.message != null)) {
+                    profileState = ProfileState.LoggedOut
+                    backendResponse.value.message= result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.buildBackendResponse()
+                } else if (result?.resultCode == 401 && result.message != null) {
+                    profileState = ProfileState.Unauthenticated
+                    backendResponse.value.message= result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.buildBackendResponse()
+                } else {
+                    profileState = ProfileState.Error
+                    backendResponse.value.message= result?.message
+                    backendResponse.value.buildBackendResponse()
+                }
+            } catch (e: Exception) {
+                profileState = ProfileState.Error
+                backendResponse.value.message= e.message
+                backendResponse.value.buildBackendResponse()
+            }
+            delay(250)
+            loadingState = LoadingState.Loaded
+        }
+    }
+
     private fun getUserProfileResult() {
         loadingState = LoadingState.Loading
         viewModelScope.launch {
+            delay(250)
             try {
-                val result = repository.getUserProfileResult(token, id!!)
+                val token = sessionManager.getToken()
+                val result = repository.getUserProfileResult(token, userProfile.id!!)
                 if (result != null) {
-                    if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
-                        username = result.name
-                        id = result.id
-                        bio = result.bio
-                        travelPreferences = result.travelPreferences
-                        tripsCount = result.tripsCount!!
-                        plannedCount = result.plannedTripsCount!!
-                        favoriteCount = 0
+                    if (result.resultCode == 200 && result.id != null && result.name != null) {
+                        userProfile = UserProfileData(
+                            username = result.name,
+                            id = result.id,
+                            bio = result.bio,
+                            email = userProfile.email,
+                            tripsCount = result.tripsCount ?: 0,
+                            plannedCount = result.plannedTripsCount ?: 0,
+                            travelPreferences = result.travelPreferences
+                        )
                         linksInit(result.facebookLink, result.instagramLink, result.xLink)
-                        loginState = LoginState.Logged
-                    } else if (result.resultCode == 401 && result.message != null) {
-
-                    } else if (result.resultCode == 404 && result.message != null) {
-
+                        profileState = ProfileState.Authenticated
+                    } else if (result.resultCode == 401) {
+                        profileState = ProfileState.Unauthenticated
+                        backendResponse.value.message= result.message + "\nYou will be redirected to the login screen."
+                        backendResponse.value.buildBackendResponse()
                     } else {
-
+                        profileState = ProfileState.Error
+                        backendResponse.value.message= result.message
+                        backendResponse.value.buildBackendResponse()
                     }
                 }
             } catch (e: Exception) {
-                loginState = LoginState.Error
-            } finally {
-                delay(200)
-                loadingState = LoadingState.Loaded
+                profileState = ProfileState.Error
+                backendResponse.value.message= e.message
+                backendResponse.value.buildBackendResponse()
             }
+            delay(250)
+            loadingState = LoadingState.Loaded
+        }
+    }
+
+    fun logoutProcess(navController: NavController) {
+        isBackendResponseVisible = false
+        sessionManager.clearToken()
+        navController.popBackStack()
+        navController.navigate(Screen.LoginScreen.destination)
+    }
+
+    fun homeReturnProcess(navController: NavController) {
+        isBackendResponseVisible = false
+        navController.popBackStack()
+        navController.navigate(Screen.MainPageScreen.destination)
+    }
+
+    fun handleProfileState() {
+        when (profileState) {
+            ProfileState.Error ->
+                isBackendResponseVisible = true
+
+            ProfileState.Unauthenticated ->
+                isBackendResponseVisible = true
+
+            ProfileState.Authenticated ->
+                isBackendResponseVisible = false
+
+            ProfileState.LoggedOut ->
+                isBackendResponseVisible = true
+
+            ProfileState.Idle -> {}
         }
     }
 

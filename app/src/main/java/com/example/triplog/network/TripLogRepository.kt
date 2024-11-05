@@ -3,6 +3,7 @@ package com.example.triplog.network
 import android.util.Log
 import com.example.triplog.authorization.login.data.LoginRequest
 import com.example.triplog.authorization.login.data.LoginResult
+import com.example.triplog.authorization.login.data.LogoutResult
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
 import com.example.triplog.profile.data.profile.AuthenticatedUserProfileResult
@@ -49,6 +50,7 @@ interface InterfaceRepository {
         id: Int,
         editUserProfileRequest: EditUserProfileRequest
     ): EditUserProfileResult?
+    suspend fun getLogoutResult(token: String?): LogoutResult?
 }
 
 class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRepository {
@@ -243,6 +245,28 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
             editUserProfileResult?.message = editUserProfileResult?.message
             editUserProfileResult?.errors = editUserProfileResult?.errors
             return editUserProfileResult
+        }
+    }
+
+    override suspend fun getLogoutResult(
+        token: String?,
+    ): LogoutResult? {
+        val response: Response<LogoutResult> =
+            tripLogApiService.getLogoutResult("Bearer $token")
+        val logoutResult: LogoutResult?
+
+        if (response.isSuccessful) {
+            logoutResult = response.body()
+            logoutResult?.resultCode = response.code()
+            return logoutResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            logoutResult =
+                Moshi.Builder().build().adapter(LogoutResult::class.java)
+                    .fromJson(errorBody!!)
+            logoutResult?.resultCode = response.code()
+            logoutResult?.message = logoutResult?.message
+            return logoutResult
         }
     }
 }

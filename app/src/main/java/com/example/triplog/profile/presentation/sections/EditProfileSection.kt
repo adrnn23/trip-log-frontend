@@ -32,6 +32,7 @@ import com.example.triplog.profile.components.EditProfileDialog
 import com.example.triplog.profile.components.EditTravelPreferencesComponent
 import com.example.triplog.profile.components.LinksListComponent
 import com.example.triplog.profile.presentation.EditProfileViewModel
+import com.example.triplog.profile.presentation.EditUserProfileSection
 
 @Composable
 fun EditProfileSection(
@@ -54,12 +55,11 @@ fun EditProfileSection(
             onDismiss = { viewModel.isSaveChangesDialogVisible = false },
             onConfirmClick = {
                 viewModel.isSaveChangesDialogVisible = false
-                navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.token}")
                 viewModel.editUserProfile()
             },
             onDismissClick = {
                 viewModel.isSaveChangesDialogVisible = false
-                navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.token}")
+                navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getToken()}/${viewModel.editProfile.email}/${viewModel.editProfile.id}")
             })
     }
     LazyColumn(
@@ -79,7 +79,7 @@ fun EditProfileSection(
         item {
             EditBasicInformation(viewModel, onClick = {
                 viewModel.section =
-                    com.example.triplog.profile.presentation.EditProfileSection.EditBasicInformation
+                    EditUserProfileSection.EditBasicInformation
             })
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -97,7 +97,7 @@ fun EditProfileSection(
         item {
             EditPasswordComponent {
                 viewModel.section =
-                    com.example.triplog.profile.presentation.EditProfileSection.UpdatePassword
+                    EditUserProfileSection.UpdatePassword
             }
         }
     }

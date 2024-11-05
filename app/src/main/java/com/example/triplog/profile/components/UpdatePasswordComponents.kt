@@ -108,7 +108,7 @@ fun UpdatePasswordComponent(
     ) {
         OutlinedPasswordInput(
             label = R.string.currentPassword,
-            value = viewModel.currentPassword,
+            value = viewModel.currentPassword ?: "",
             onValueChanged = { viewModel.currentPassword = it },
             modifier = Modifier
                 .fillMaxWidth()
@@ -117,7 +117,7 @@ fun UpdatePasswordComponent(
 
         OutlinedPasswordInput(
             label = R.string.newPassword,
-            value = viewModel.newPassword,
+            value = viewModel.newPassword ?: "",
             onValueChanged = { viewModel.newPassword = it },
             modifier = Modifier
                 .fillMaxWidth()
@@ -126,7 +126,7 @@ fun UpdatePasswordComponent(
 
         OutlinedPasswordInput(
             label = R.string.repeatedNewPassword,
-            value = viewModel.repeatedNewPassword,
+            value = viewModel.repeatedNewPassword ?: "",
             onValueChanged = { viewModel.repeatedNewPassword = it },
             modifier = Modifier
                 .fillMaxWidth()

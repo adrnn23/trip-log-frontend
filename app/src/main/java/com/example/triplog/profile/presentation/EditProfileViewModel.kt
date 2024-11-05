@@ -1,6 +1,5 @@
 package com.example.triplog.profile.presentation
 
-import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Facebook
 import androidx.compose.material.icons.filled.Link
@@ -12,12 +11,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.triplog.authorization.login.presentation.LoadingState
+import androidx.navigation.NavController
+import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
+import com.example.triplog.main.navigation.Screen
+import com.example.triplog.main.presentation.BackendResponse
+import com.example.triplog.main.states.LoadingState
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.ErrorData
 import com.example.triplog.profile.data.profile.EditUserProfileRequest
+import com.example.triplog.profile.data.profile.EditUserProfileResult
 import com.example.triplog.profile.data.profile.TravelPreferencesResult
 import com.example.triplog.profile.data.profile.UserProfileResult.TravelPreference
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordRequest
@@ -25,40 +29,72 @@ import com.example.triplog.profile.data.updatePassword.UpdatePasswordResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-enum class EditProfileSection {
-    Main, EditTravelPreferences, EditBiography, UpdatePassword, EditBasicInformation
+sealed class EditProfileState {
+    data object NotUpdated : EditProfileState()
+    data object Updated : EditProfileState()
+    data object ProfileLoadingError : EditProfileState()
+    data object Unauthenticated : EditProfileState()
+    data object Authenticated : EditProfileState()
+    data object LoggedOut : EditProfileState()
+    data object ValidationError : EditProfileState()
+    data object Error : EditProfileState()
 }
 
-enum class UpdatePasswordState {
-    NotUpdated, Updated, Error, ValidationError
+sealed class EditUserProfileSection {
+    data object Main : EditUserProfileSection()
+    data object EditTravelPreferences : EditUserProfileSection()
+    data object EditBiography : EditUserProfileSection()
+    data object UpdatePassword : EditUserProfileSection()
+    data object EditBasicInformation : EditUserProfileSection()
 }
 
-enum class EditProfileState {
-    NotUpdated, Updated, Error, ValidationError
+sealed class UpdatePasswordState {
+    data object NotUpdated : UpdatePasswordState()
+    data object Updated : UpdatePasswordState()
+    data object Error : UpdatePasswordState()
+    data object Unauthenticated : UpdatePasswordState()
 }
 
-class EditProfileViewModel(private val repository: InterfaceRepository, var token: String?) :
+data class EditProfileData(
+    var avatar: String? = "",
+    var bio: String? = "",
+    var email: String? = "",
+    var name: String? = "",
+    var id: Int? = null,
+    var facebookLink: String? = "",
+    var instagramLink: String? = "",
+    var xLink: String? = ""
+)
+
+class EditProfileViewModel(
+    private val repository: InterfaceRepository,
+    val sessionManager: SessionManager
+) :
     ViewModel() {
 
     fun initParams(iId: Int?, iEmail: String?) {
-        id = iId
-        email = iEmail
+        editProfile.id = iId
+        editProfile.email = iEmail
         getUserProfileResult()
     }
 
     var isProgressIndicatorVisible by mutableStateOf(false)
 
+    var editProfileResult by mutableStateOf<EditUserProfileResult?>(null)
     var updatePasswordResult by mutableStateOf<UpdatePasswordResult?>(null)
-    var updatePasswordState by mutableStateOf(UpdatePasswordState.NotUpdated)
+    var editProfile by mutableStateOf(EditProfileData())
 
+    var editProfileState by mutableStateOf<EditProfileState>(EditProfileState.NotUpdated)
+    var updatePasswordState by mutableStateOf<UpdatePasswordState>(UpdatePasswordState.NotUpdated)
     var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
-    var section by mutableStateOf(EditProfileSection.Main)
+    var section by mutableStateOf<EditUserProfileSection>(EditUserProfileSection.Main)
 
-    var username by mutableStateOf<String>("")
-    var id by mutableStateOf<Int?>(null)
-    var bio by mutableStateOf<String>("")
-    var email by mutableStateOf<String?>("")
+    var currentPassword by mutableStateOf<String?>("")
+    var newPassword by mutableStateOf<String?>("")
+    var repeatedNewPassword by mutableStateOf<String?>("")
 
+    var backendResponse = mutableStateOf(BackendResponse())
+    var isBackendResponseVisible by mutableStateOf(false)
 
     var links by mutableStateOf(
         mutableListOf(
@@ -67,15 +103,16 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
             LinkData("X", Icons.Default.Link, "")
         )
     )
-    var facebookLink by mutableStateOf<String?>("")
-    var instagramLink by mutableStateOf<String?>("")
-    var xLink by mutableStateOf<String?>("")
+
+    private var facebookLink by mutableStateOf<String?>("")
+    private var instagramLink by mutableStateOf<String?>("")
+    private var xLink by mutableStateOf<String?>("")
 
     // Travel preferences result from backend server
-    var travelPreferencesResult by mutableStateOf<TravelPreferencesResult?>(null)
+    private var travelPreferencesResult by mutableStateOf<TravelPreferencesResult?>(null)
 
     // User's travel preferences
-    var userTravelPreferences: List<TravelPreference?>? = listOf()
+    private var userTravelPreferences: List<TravelPreference?>? = listOf()
 
     // Travel preferences lists used for operations in app
     var travelPreferencesList by mutableStateOf(mutableListOf<TravelPreference?>())
@@ -85,9 +122,6 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
     var emailTemp by mutableStateOf("")
     var bioTemp by mutableStateOf("")
 
-    var currentPassword by mutableStateOf("")
-    var newPassword by mutableStateOf("")
-    var repeatedNewPassword by mutableStateOf("")
 
     var isUsernameDialogVisible by mutableStateOf(false)
     var isEmailDialogVisible by mutableStateOf(false)
@@ -97,15 +131,19 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
 
     var errorMessage by mutableStateOf(ErrorData(false, null, ""))
 
+    fun clearBackendResponse() {
+        backendResponse.value.clearResponse()
+    }
+
     companion object {
         fun provideFactory(
-            token: String?,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application =
                     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
                 val repository = application.container.repository
-                EditProfileViewModel(repository = repository, token = token)
+                val sessionManager = application.sessionManager
+                EditProfileViewModel(repository = repository, sessionManager = sessionManager)
             }
         }
     }
@@ -136,13 +174,11 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
         }
     }
 
-
     fun linksInit(facebookLink: String?, instagramLink: String?, xLink: String?) {
         links[0] = LinkData("Facebook", Icons.Default.Facebook, facebookLink ?: "")
         links[1] = LinkData("Instagram", Icons.Default.Link, instagramLink ?: "")
         links[2] = LinkData("X", Icons.Default.Link, xLink ?: "")
     }
-
 
     private fun prepareTravelPrefToSend(): List<String?> {
         val travelPrefIndexes = mutableListOf<String?>()
@@ -158,29 +194,73 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
     private fun getUserProfileResult() {
         loadingState = LoadingState.Loading
         viewModelScope.launch {
-            val result = repository.getUserProfileResult(token, id!!)
-            if (result != null) {
-                if (result.resultCode == 200 && (result.id != null) && (result.name != null) && (result.bio != null)) {
-                    username = result.name
-                    id = result.id
-                    bio = result.bio
-                    userTravelPreferences = result.travelPreferences ?: emptyList()
-                    getTravelPreferences()
-                    facebookLink = result.facebookLink
-                    instagramLink = result.instagramLink
-                    xLink = result.xLink
-
-                    linksInit(result.facebookLink, result.instagramLink, result.xLink)
-                } else if (result.resultCode == 401 && result.message != null) {
-
-                } else if (result.resultCode == 404 && result.message != null) {
-
-                } else {
-
+            delay(250)
+            try {
+                val token = sessionManager.getToken()
+                val result = repository.getUserProfileResult(token, editProfile.id!!)
+                if (result != null) {
+                    if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
+                        editProfile.name = result.name
+                        editProfile.id = result.id
+                        editProfile.bio = result.bio
+                        userTravelPreferences = result.travelPreferences ?: emptyList()
+                        getTravelPreferences()
+                        facebookLink = result.facebookLink
+                        instagramLink = result.instagramLink
+                        xLink = result.xLink
+                        linksInit(result.facebookLink, result.instagramLink, result.xLink)
+                        editProfileState = EditProfileState.Authenticated
+                    } else if (result.resultCode == 401) {
+                        editProfileState = EditProfileState.Unauthenticated
+                        backendResponse.value.message =
+                            result.message + "\nYou will be redirected to the login screen."
+                        backendResponse.value.buildBackendResponse()
+                    } else {
+                        editProfileState = EditProfileState.ProfileLoadingError
+                        backendResponse.value.message = result.message
+                        backendResponse.value.buildBackendResponse()
+                    }
                 }
+            } catch (e: Exception) {
+                editProfileState = EditProfileState.ProfileLoadingError
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
             }
-            delay(200)
+            delay(250)
             loadingState = LoadingState.Loaded
+        }
+    }
+
+    private fun getTravelPreferences() {
+        viewModelScope.launch {
+            try {
+                val token = sessionManager.getToken()
+                val result = repository.getTravelPreferences(token)
+                travelPreferencesResult = result
+                if (result?.resultCode == 200 && result.travelPreference != null) {
+                    travelPreferencesResult?.travelPreference?.forEach { item ->
+                        val travelPreference =
+                            TravelPreference(id = item?.id, name = item?.name,
+                                isSelected = userTravelPreferences?.any { it?.id == item?.id }
+                                    ?: false
+                            )
+                        travelPreferencesList.add(travelPreference)
+                    }
+                } else if (result?.resultCode == 401 && result.message != null) {
+                    editProfileState = EditProfileState.Unauthenticated
+                    backendResponse.value.message =
+                        result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.buildBackendResponse()
+                } else {
+                    editProfileState = EditProfileState.ProfileLoadingError
+                    backendResponse.value.message = result?.message
+                    backendResponse.value.buildBackendResponse()
+                }
+            } catch (e: Exception) {
+                editProfileState = EditProfileState.ProfileLoadingError
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
+            }
         }
     }
 
@@ -188,7 +268,12 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
         viewModelScope.launch {
             try {
                 val request =
-                    UpdatePasswordRequest(currentPassword, newPassword, repeatedNewPassword)
+                    UpdatePasswordRequest(
+                        currentPassword!!,
+                        newPassword!!,
+                        repeatedNewPassword!!
+                    )
+                val token = sessionManager.getToken()
                 val result = repository.updatePassword(token, request)
                 updatePasswordResult = result
                 if ((updatePasswordResult?.resultCode == 200) && (updatePasswordResult?.message != null)) {
@@ -196,40 +281,31 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
                     newPassword = ""
                     repeatedNewPassword = ""
                     updatePasswordState = UpdatePasswordState.Updated
-                } else if (updatePasswordResult?.resultCode == 400 && updatePasswordResult?.message != null) {
-                    updatePasswordState = UpdatePasswordState.Error
+                } else if (updatePasswordResult?.resultCode == 401 && updatePasswordResult?.message != null) {
+                    updatePasswordState = UpdatePasswordState.Unauthenticated
+                    backendResponse.value.message =
+                        result?.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.buildBackendResponse()
                 } else if (updatePasswordResult?.resultCode == 422 && updatePasswordResult?.message != null) {
-                    updatePasswordState = UpdatePasswordState.ValidationError
+                    updatePasswordState = UpdatePasswordState.Error
+                    backendResponse.value.message = result?.message
+                    result?.errors?.password?.forEach { item ->
+                        backendResponse.value.addError(item)
+                    }
+                    result?.errors?.oldPassword?.forEach { item ->
+                        backendResponse.value.addError(item)
+                    }
+                    backendResponse.value.buildBackendResponse()
+
                 } else {
-                    updatePasswordState = UpdatePasswordState.NotUpdated
+                    updatePasswordState = UpdatePasswordState.Error
+                    backendResponse.value.message = result?.message
+                    backendResponse.value.buildBackendResponse()
                 }
             } catch (e: Exception) {
                 updatePasswordState = UpdatePasswordState.Error
-            }
-        }
-    }
-
-    fun getTravelPreferences() {
-        viewModelScope.launch {
-            val result = repository.getTravelPreferences(token)
-            travelPreferencesResult = result
-            when (result?.resultCode) {
-                200 -> {
-                    travelPreferencesResult?.travelPreference?.forEach { item ->
-                        val travelPreference = TravelPreference(id = item?.id, name = item?.name,
-                            isSelected = userTravelPreferences?.any { it?.id == item?.id } ?: false
-                        )
-                        travelPreferencesList.add(travelPreference)
-                    }
-                }
-
-                401 -> {
-
-                }
-
-                else -> {
-
-                }
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
             }
         }
     }
@@ -237,35 +313,116 @@ class EditProfileViewModel(private val repository: InterfaceRepository, var toke
     fun editUserProfile() {
         loadingState = LoadingState.Loading
         viewModelScope.launch {
-            val travelPreferences = prepareTravelPrefToSend()
-            val request = EditUserProfileRequest(
-                avatar = "",
-                bio = bio,
-                email = email,
-                name = username,
-                facebookLink = links[0].link,
-                instagramLink = links[1].link,
-                xLink = links[2].link,
-                travelPreferences = travelPreferences
-            )
-            val result = repository.editUserProfile(token, id!!, request)
-            if (result != null) {
-                if (result.resultCode == 200 && (result.id != null) && (result.name != null) && (result.bio != null)) {
-                    username = result.name
-                    bio = result.bio
-                    userTravelPreferences =
-                        (result.travelPreferences ?: emptyList()) as List<TravelPreference?>?
-                    linksInit(result.facebookLink, result.instagramLink, result.xLink)
-                } else if (result.resultCode == 401 && result.message != null) {
-
-                } else if (result.resultCode == 422 && result.message != null) {
-
-                } else {
-
+            delay(250)
+            try {
+                val token = sessionManager.getToken()
+                val travelPreferences = prepareTravelPrefToSend()
+                val request = EditUserProfileRequest(
+                    avatar = "",
+                    bio = editProfile.bio,
+                    email = editProfile.email,
+                    name = editProfile.name,
+                    facebookLink = links[0].link,
+                    instagramLink = links[1].link,
+                    xLink = links[2].link,
+                    travelPreferences = travelPreferences
+                )
+                val result = repository.editUserProfile(token, editProfile.id!!, request)
+                if (result != null) {
+                    editProfileResult = result
+                    if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
+                        editProfile.name = result.name
+                        editProfile.bio = result.bio
+                        editProfile.id = result.id
+                        userTravelPreferences =
+                            (result.travelPreferences ?: emptyList()) as List<TravelPreference?>?
+                        linksInit(result.facebookLink, result.instagramLink, result.xLink)
+                        editProfileState = EditProfileState.Updated
+                    } else if (result.resultCode == 401 && result.message != null) {
+                        editProfileState = EditProfileState.Unauthenticated
+                        backendResponse.value.message =
+                            result.message + "\nYou will be redirected to the login screen."
+                        backendResponse.value.buildBackendResponse()
+                    } else if (result.resultCode == 422 && result.message != null) {
+                        editProfileState = EditProfileState.ValidationError
+                        backendResponse.value.message = result.message
+                        result.errors?.name?.forEach { item ->
+                            backendResponse.value.addError(item)
+                        }
+                        result.errors?.email?.forEach { item ->
+                            backendResponse.value.addError(item)
+                        }
+                        result.errors?.avatar?.forEach { item ->
+                            backendResponse.value.addError(item)
+                        }
+                        backendResponse.value.buildBackendResponse()
+                    } else {
+                        editProfileState = EditProfileState.Error
+                        backendResponse.value.message = result.message
+                        backendResponse.value.buildBackendResponse()
+                    }
                 }
+            } catch (e: Exception) {
+                editProfileState = EditProfileState.Error
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
             }
-            delay(200)
+            delay(250)
             loadingState = LoadingState.Loaded
+        }
+    }
+
+    fun updatedProfileProcess(navController: NavController) {
+        navController.popBackStack()
+        navController.navigate("${Screen.ProfileScreen.destination}/${sessionManager.getToken()}/${editProfile.email}/${editProfile.id}")
+    }
+
+    fun homeReturnProcess(navController: NavController) {
+        navController.popBackStack()
+        navController.navigate(Screen.MainPageScreen.destination)
+    }
+
+    fun logoutProcess(navController: NavController) {
+        sessionManager.clearToken()
+        navController.popBackStack()
+        navController.navigate(Screen.LoginScreen.destination)
+    }
+
+    fun validationErrorProcess() {
+        isBackendResponseVisible = false
+        clearBackendResponse()
+        editProfileState = EditProfileState.NotUpdated
+    }
+
+    fun handleEditProfileState(navController: NavController) {
+        when (editProfileState) {
+            EditProfileState.Error -> {
+                isBackendResponseVisible = true
+            }
+
+            EditProfileState.ValidationError -> {
+                isBackendResponseVisible = true
+            }
+
+            EditProfileState.Unauthenticated -> {
+                isBackendResponseVisible = true
+            }
+
+            EditProfileState.Authenticated -> {}
+
+            EditProfileState.LoggedOut -> {
+                isBackendResponseVisible = true
+            }
+
+            EditProfileState.NotUpdated -> {}
+
+            EditProfileState.Updated -> {
+                isBackendResponseVisible = true
+            }
+
+            EditProfileState.ProfileLoadingError -> {
+                isBackendResponseVisible = true
+            }
         }
     }
 

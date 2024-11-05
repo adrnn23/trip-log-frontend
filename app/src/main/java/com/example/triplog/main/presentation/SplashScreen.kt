@@ -39,7 +39,7 @@ fun SplashScreen(navController: NavController) {
         alpha.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 1000))
         delay(2000)
         navController.popBackStack()
-        navController.navigate(Screen.LoginScreen.destination)
+        navController.navigate(Screen.MainPageScreen.destination)
     }
 
     Row(horizontalArrangement = Arrangement.Center,

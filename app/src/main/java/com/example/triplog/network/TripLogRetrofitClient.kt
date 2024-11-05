@@ -2,6 +2,7 @@ package com.example.triplog.network
 
 import com.example.triplog.authorization.login.data.LoginRequest
 import com.example.triplog.authorization.login.data.LoginResult
+import com.example.triplog.authorization.login.data.LogoutResult
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
 import com.example.triplog.profile.data.profile.AuthenticatedUserProfileResult
@@ -68,6 +69,9 @@ interface TripLogApiService {
         @Body editUserProfileRequest: EditUserProfileRequest
     ): Response<EditUserProfileResult>
 
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @POST("/api/auth/logout")
+    suspend fun getLogoutResult(@Header("Authorization") token: String?): Response<LogoutResult>
 }
 
 interface RepositoryContainer {
@@ -75,7 +79,7 @@ interface RepositoryContainer {
 }
 
 class TripLogRetrofitClient : RepositoryContainer {
-    private val url = "http://192.168.147.x/"
+    private val url = "http://192.168.1.x/"
 
     private val moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     private val retrofit: Retrofit = Retrofit.Builder()

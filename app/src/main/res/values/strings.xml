@@ -87,4 +87,11 @@
     <string name="repeatedNewPassword">Repeat new password</string>
     <string name="updatePasswordInformation">Password update information</string>
 
+    <string name="logout">Logout</string>
+    <string name="editProfileInformation">Edit profile information</string>
+    <string name="editProfileSuccess">You have edited your profile successfully.</string>
+
+    <string name="mainPage">Main page</string>
+    <string name="operationResult">Operation result</string>
+
 </resources>

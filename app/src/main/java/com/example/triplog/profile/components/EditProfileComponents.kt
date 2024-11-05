@@ -67,8 +67,8 @@ import com.example.triplog.authorization.registration.components.UsernameInput
 import com.example.triplog.profile.data.ErrorData
 import com.example.triplog.profile.data.ErrorType
 import com.example.triplog.profile.data.LinkData
-import com.example.triplog.profile.presentation.EditProfileSection
 import com.example.triplog.profile.presentation.EditProfileViewModel
+import com.example.triplog.profile.presentation.EditUserProfileSection
 import com.example.triplog.travel.components.ButtonComponent
 
 @Composable
@@ -151,7 +151,7 @@ fun EditAvatarComponent() {
 @Composable
 fun EditUsernameComponent(viewModel: EditProfileViewModel) {
     if (viewModel.isUsernameDialogVisible) {
-        viewModel.usernameTemp = viewModel.username
+        viewModel.usernameTemp = viewModel.editProfile.name ?: ""
         EditProfileDialog(
             title = R.string.editUsername,
             text = {
@@ -174,42 +174,16 @@ fun EditUsernameComponent(viewModel: EditProfileViewModel) {
             },
             onConfirmClick = {
                 if (viewModel.usernameTemp.isNotEmpty()) {
-                    if (viewModel.usernameTemp.length < 33) {
-                        viewModel.username = viewModel.usernameTemp
-                        viewModel.usernameTemp = ""
-                        viewModel.isUsernameDialogVisible = false
-                    } else {
-                        viewModel.isUsernameDialogVisible = false
-                        viewModel.errorMessage = ErrorData(true, ErrorType.Username, "")
-                    }
+
+                    viewModel.editProfile.name = viewModel.usernameTemp
+                    viewModel.usernameTemp = ""
+                    viewModel.isUsernameDialogVisible = false
                 }
             },
             onDismissClick = {
                 viewModel.usernameTemp = ""
                 viewModel.isUsernameDialogVisible = false
             }
-        )
-    }
-    if (viewModel.errorMessage.isError && viewModel.errorMessage.type == ErrorType.Username) {
-        InformationDialog(
-            title = R.string.validationError,
-            text = {
-                Text(
-                    stringResource(R.string.usernameLength),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            },
-            icon = {
-                Icon(
-                    Icons.Default.Error,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
-            },
-            containerColor = { MaterialTheme.colorScheme.errorContainer },
-            onDismiss = { viewModel.errorMessage = ErrorData(false, null, "") },
-            onConfirmClick = { viewModel.errorMessage = ErrorData(false, null, "") }
         )
     }
     Row(
@@ -221,7 +195,7 @@ fun EditUsernameComponent(viewModel: EditProfileViewModel) {
     ) {
         UsernameInput(
             label = R.string.username,
-            value = viewModel.username,
+            value = viewModel.editProfile.name ?: "",
             onValueChanged = { },
             enabled = false,
             modifier = Modifier
@@ -242,7 +216,7 @@ fun EditUsernameComponent(viewModel: EditProfileViewModel) {
 @Composable
 fun EditEmailComponent(viewModel: EditProfileViewModel) {
     if (viewModel.isEmailDialogVisible) {
-        viewModel.emailTemp = viewModel.email ?: ""
+        viewModel.emailTemp = viewModel.editProfile.email ?: ""
         EditProfileDialog(
             icon = { Icon(Icons.Default.Email, contentDescription = null) },
             title = R.string.editEmail,
@@ -263,7 +237,7 @@ fun EditEmailComponent(viewModel: EditProfileViewModel) {
             },
             onConfirmClick = {
                 if (viewModel.emailTemp.isNotEmpty()) {
-                    viewModel.email = viewModel.emailTemp
+                    viewModel.editProfile.email = viewModel.emailTemp
                     viewModel.emailTemp = ""
                     viewModel.isEmailDialogVisible = false
                 }
@@ -283,7 +257,7 @@ fun EditEmailComponent(viewModel: EditProfileViewModel) {
     ) {
         EmailInput(
             label = R.string.email,
-            value = viewModel.email ?: "",
+            value = viewModel.editProfile.email ?: "",
             onValueChanged = { },
             enabled = false,
             modifier = Modifier
@@ -345,7 +319,7 @@ fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
             modifier = Modifier.width(220.dp),
             onClick = {
                 viewModel.section =
-                    EditProfileSection.EditTravelPreferences
+                    EditUserProfileSection.EditTravelPreferences
                 viewModel.tempTravelPreferencesList =
                     viewModel.travelPreferencesList.toMutableList()
             }
@@ -364,7 +338,7 @@ fun EditBioComponent(viewModel: EditProfileViewModel) {
     ) {
         BioInput(
             R.string.biography,
-            viewModel.bio,
+            viewModel.editProfile.bio ?: "",
             enabled = false,
             modifier = Modifier
                 .fillMaxWidth(0.9f)
@@ -375,8 +349,8 @@ fun EditBioComponent(viewModel: EditProfileViewModel) {
             modifier = Modifier,
             icon = Icons.Default.Edit,
             changeAction = {
-                viewModel.bioTemp = viewModel.bio
-                viewModel.section = EditProfileSection.EditBiography
+                viewModel.bioTemp = viewModel.editProfile.bio ?: ""
+                viewModel.section = EditUserProfileSection.EditBiography
             })
     }
 }
@@ -789,7 +763,7 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
         )
-        Text(text = viewModel.username, style = MaterialTheme.typography.bodyMedium)
+        Text(text = viewModel.editProfile.name ?: "", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(4.dp))
 
         TitleComponent(
@@ -798,7 +772,7 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
         )
-        Text(text = viewModel.email ?: "", style = MaterialTheme.typography.bodyMedium)
+        Text(text = viewModel.editProfile.email ?: "", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(4.dp))
 
         TitleComponent(
@@ -807,7 +781,7 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
         )
-        Text(text = viewModel.bio, style = MaterialTheme.typography.bodyMedium)
+        Text(text = viewModel.editProfile.bio ?: "", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(4.dp))
 
         ButtonComponent(
@@ -816,5 +790,4 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
             onClick = { onClick() }
         )
     }
-
 }
