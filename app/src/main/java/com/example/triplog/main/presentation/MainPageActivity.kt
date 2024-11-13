@@ -63,10 +63,15 @@ fun MainPageScreen(navController: NavController) {
                     bottomBar = {
                         ApplicationBottomBar(
                             block = viewModel.isProgressIndicatorVisible,
+                            index = 0,
                             goToMainPage = {},
                             goToProfile = {
                                 navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getToken()}/${viewModel.authenticatedUserProfile.email}/${viewModel.authenticatedUserProfile.id}")
-                            })
+                            },
+                            goToCreateTravel = {
+                                navController.navigate(Screen.CreateTravelScreen.destination)
+                            }
+                        )
                     }
                 ) {
                     MainPageScreenComponent()

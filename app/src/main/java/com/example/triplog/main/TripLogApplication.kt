@@ -3,6 +3,7 @@ package com.example.triplog.main
 import android.app.Application
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import com.example.triplog.network.MapboxGeocodingClient
 import com.example.triplog.network.RepositoryContainer
 import com.example.triplog.network.TripLogRetrofitClient
 
@@ -10,6 +11,7 @@ class TripLogApplication : Application() {
     lateinit var container: RepositoryContainer
     lateinit var sessionManager: SessionManager
         private set
+    lateinit var mapboxGeocodingClient: MapboxGeocodingClient
 
     override fun onCreate() {
         super.onCreate()
@@ -23,7 +25,7 @@ class TripLogApplication : Application() {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-
         sessionManager = SessionManager(sharedPreferences)
+        mapboxGeocodingClient = MapboxGeocodingClient()
     }
 }

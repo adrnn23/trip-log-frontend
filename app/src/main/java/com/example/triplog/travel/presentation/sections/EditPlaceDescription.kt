@@ -1,4 +1,4 @@
-package com.example.triplog.profile.presentation.sections
+package com.example.triplog.travel.presentation.sections
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -15,16 +15,17 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.triplog.profile.presentation.EditProfileViewModel
+import com.example.triplog.travel.presentation.CreateTravelViewModel
 
 @Composable
-fun EditBiographySection(innerpadding: PaddingValues, viewModel: EditProfileViewModel) {
+fun EditPlaceDescriptionSection(innerpadding: PaddingValues, viewModel: CreateTravelViewModel) {
     val alpha = remember {
         Animatable(0f)
     }
     LaunchedEffect(key1 = true) {
         alpha.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 200))
     }
+
     Box(
         modifier = Modifier
             .alpha(alpha.value)
@@ -33,8 +34,8 @@ fun EditBiographySection(innerpadding: PaddingValues, viewModel: EditProfileView
             .padding(2.dp)
     ) {
         BasicTextField(
-            value = viewModel.bioTemp,
-            onValueChange = { viewModel.bioTemp = it },
+            value = viewModel.placeDescriptionTemp,
+            onValueChange = { viewModel.placeDescriptionTemp = it },
             textStyle = TextStyle(fontSize = 24.sp),
             modifier = Modifier.fillMaxSize()
         )

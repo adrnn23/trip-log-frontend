@@ -79,7 +79,7 @@ interface RepositoryContainer {
 }
 
 class TripLogRetrofitClient : RepositoryContainer {
-    private val url = "http://192.168.1.x/"
+    private val url = "http://192.168.1.9/"
 
     private val moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     private val retrofit: Retrofit = Retrofit.Builder()

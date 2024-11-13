@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.navDeepLink
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.InformationDialog
 import com.example.triplog.authorization.login.components.LinearIndicator
@@ -74,10 +73,14 @@ fun ProfileScreen(navController: NavController, token: String?, id: Int?, email:
                     bottomBar = {
                         ApplicationBottomBar(
                             block = viewModel.isProgressIndicatorVisible,
+                            index = 2,
                             goToProfile = { },
                             goToMainPage = {
                                 navController.popBackStack()
                                 navController.navigate(Screen.MainPageScreen.destination)
+                            },
+                            goToCreateTravel = {
+                                navController.navigate(Screen.CreateTravelScreen.destination)
                             })
                     }
                 ) { innerpadding ->
@@ -155,12 +158,13 @@ fun ProfileScreen(navController: NavController, token: String?, id: Int?, email:
                     },
                     containerColor = { MaterialTheme.colorScheme.errorContainer },
                     onDismiss = {
-                        if(viewModel.profileState==ProfileState.Error)
+                        if (viewModel.profileState == ProfileState.Error)
                             viewModel.homeReturnProcess(navController)
                         else
-                            viewModel.logoutProcess(navController) },
+                            viewModel.logoutProcess(navController)
+                    },
                     onConfirmClick = {
-                        if(viewModel.profileState==ProfileState.Error)
+                        if (viewModel.profileState == ProfileState.Error)
                             viewModel.homeReturnProcess(navController)
                         else
                             viewModel.logoutProcess(navController)

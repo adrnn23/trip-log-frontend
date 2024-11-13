@@ -174,7 +174,6 @@ fun EditUsernameComponent(viewModel: EditProfileViewModel) {
             },
             onConfirmClick = {
                 if (viewModel.usernameTemp.isNotEmpty()) {
-
                     viewModel.editProfile.name = viewModel.usernameTemp
                     viewModel.usernameTemp = ""
                     viewModel.isUsernameDialogVisible = false
@@ -356,13 +355,13 @@ fun EditBioComponent(viewModel: EditProfileViewModel) {
 }
 
 @Composable
-fun ChangeButton(modifier: Modifier, icon: ImageVector, changeAction: () -> Unit) {
+fun ChangeButton(modifier: Modifier, icon: ImageVector, size: Int = 28, changeAction: () -> Unit) {
     Icon(
         imageVector = icon,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.tertiary,
         modifier = modifier
-            .size(28.dp)
+            .size(size.dp)
             .clickable { changeAction() }
     )
 }
@@ -437,7 +436,6 @@ fun EditProfileDialog(
 @Composable
 fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
     var indexToRemove by remember { mutableStateOf<Int?>(null) }
-//    var extended by remember { mutableStateOf(false) }
 
     var site by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
@@ -574,22 +572,8 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                 modifier = Modifier
             )
             Spacer(modifier = Modifier.width(4.dp))
-            /*            if (viewModel.links.size > 1) {
-                            Icon(
-                                imageVector = if (extended) {
-                                    Icons.Default.KeyboardArrowUp
-                                } else {
-                                    Icons.Default.KeyboardArrowDown
-                                },
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clickable { extended = !extended }
-                            )
-                        }*/
         }
         if (viewModel.links.isNotEmpty()) {
-//            if (extended) {
             LazyColumn(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -624,30 +608,6 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                     }
                 }
             }
-            /*            } else {
-                            if (viewModel.links[0] != null) {
-                                Box(
-                                    contentAlignment = Alignment.CenterStart,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Link(link = viewModel.links[0]!!)
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .align(Alignment.CenterEnd)
-                                            .size(24.dp)
-                                            .clickable {
-                                                viewModel.isDeleteLinkDialogVisible = true
-                                                indexToRemove =
-                                                    viewModel.links.indexOf(viewModel.links[0])
-                                            }
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                            }
-                        }*/
         } else {
             Text(text = stringResource(R.string.addMaxThreeLinks), fontSize = 12.sp)
         }

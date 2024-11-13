@@ -31,7 +31,7 @@
     <string name="travelAdvices">Travel Advices</string>
 
     <string name="home">Home</string>
-    <string name="addTrips">Add Trip</string>
+    <string name="addTravel">Add Travel</string>
     <string name="profile">Profile</string>
 
     <string name="editProfile">Edit profile</string>
@@ -93,5 +93,31 @@
 
     <string name="mainPage">Main page</string>
     <string name="operationResult">Operation result</string>
+
+    <string name="addNewTravel">Add new travel</string>
+    <string name="createNewTravel">Create new travel</string>
+    <string name="editTravelInformation">Edit travel information</string>
+    <string name="startDate">Travel start date:</string>
+    <string name="endDate">Travel end date:</string>
+    <string name="cancel">Cancel</string>
+    <string name="editTravelDescription">Edit travel description</string>
+    <string name="saveTravelDescription">Save travel description</string>
+
+
+    <string name="placeName">Place name</string>
+    <string name="placeOnMap">Place on the map</string>
+    <string name="placeDescription">Place description</string>
+    <string name="placeCategory">Category of place</string>
+    <string name="editPlaceInformation">Edit place information</string>
+    <string name="editPlaceLocalization">Edit place localization</string>
+    <string name="editPlaceDescription">Edit place description</string>
+    <string name="savePlaceDescription">Save place description</string>
+    <string name="enterLocation">Enter location</string>
+    <string name="saveLocation">Save location</string>
+    <string name="search">Search</string>
+    <string name="placePhoto">Place photo</string>
+    <string name="changePlacePhoto">Change place photo</string>
+
+
 
 </resources>

@@ -153,12 +153,7 @@ fun EditProfileScreen(token: String?, id: Int?, email: String?, navController: N
                             }
                         }
 
-                        EditUserProfileSection.EditBasicInformation -> {
-                            EditProfileBottomBar(R.string.saveChanges) {
-                                viewModel.section =
-                                    EditUserProfileSection.Main
-                            }
-                        }
+                        EditUserProfileSection.EditBasicInformation -> {}
 
                         EditUserProfileSection.EditBiography -> {
                             EditProfileBottomBar(R.string.saveBiography) {
