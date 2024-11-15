@@ -37,7 +37,7 @@ fun SplashScreen(navController: NavController) {
     }
     LaunchedEffect(key1 = true) {
         alpha.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 1000))
-        delay(2000)
+        delay(1000)
         navController.popBackStack()
         navController.navigate(Screen.MainPageScreen.destination)
     }

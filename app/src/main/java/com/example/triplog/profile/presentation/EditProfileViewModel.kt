@@ -72,9 +72,7 @@ class EditProfileViewModel(
 ) :
     ViewModel() {
 
-    fun initParams(iId: Int?, iEmail: String?) {
-        editProfile.id = iId
-        editProfile.email = iEmail
+    fun initParams() {
         getUserProfileResult()
     }
 
@@ -197,7 +195,7 @@ class EditProfileViewModel(
             delay(250)
             try {
                 val token = sessionManager.getToken()
-                val result = repository.getUserProfileResult(token, editProfile.id!!)
+                val result = repository.getUserProfileResult(token, sessionManager.getUserId()!!)
                 if (result != null) {
                     if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
                         editProfile.name = result.name
@@ -327,7 +325,8 @@ class EditProfileViewModel(
                     xLink = links[2].link,
                     travelPreferences = travelPreferences
                 )
-                val result = repository.editUserProfile(token, editProfile.id!!, request)
+                val result =
+                    repository.editUserProfile(token, sessionManager.getUserId()!!, request)
                 if (result != null) {
                     editProfileResult = result
                     if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
@@ -374,7 +373,7 @@ class EditProfileViewModel(
 
     fun updatedProfileProcess(navController: NavController) {
         navController.popBackStack()
-        navController.navigate("${Screen.ProfileScreen.destination}/${sessionManager.getToken()}/${editProfile.email}/${editProfile.id}")
+        navController.navigate(Screen.ProfileScreen.destination)
     }
 
     fun homeReturnProcess(navController: NavController) {

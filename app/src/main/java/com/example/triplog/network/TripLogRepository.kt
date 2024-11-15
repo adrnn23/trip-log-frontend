@@ -6,9 +6,13 @@ import com.example.triplog.authorization.login.data.LoginResult
 import com.example.triplog.authorization.login.data.LogoutResult
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
+import com.example.triplog.main.data.SearchProfilesResult
 import com.example.triplog.profile.data.profile.AuthenticatedUserProfileResult
 import com.example.triplog.profile.data.profile.EditUserProfileRequest
 import com.example.triplog.profile.data.profile.EditUserProfileResult
+import com.example.triplog.profile.data.profile.FriendsOperationResult
+import com.example.triplog.profile.data.profile.GetFriendsListResult
+import com.example.triplog.profile.data.profile.GetFriendsRequestsResult
 import com.example.triplog.profile.data.profile.TravelPreference
 import com.example.triplog.profile.data.profile.TravelPreferencesResult
 import com.example.triplog.profile.data.profile.UserProfileResult
@@ -50,7 +54,18 @@ interface InterfaceRepository {
         id: Int,
         editUserProfileRequest: EditUserProfileRequest
     ): EditUserProfileResult?
+
     suspend fun getLogoutResult(token: String?): LogoutResult?
+    suspend fun getFriendsList(token: String?): GetFriendsListResult?
+    suspend fun getFriendsRequests(token: String?): GetFriendsRequestsResult?
+    suspend fun sendFriendRequest(token: String?, userId: Int): FriendsOperationResult?
+    suspend fun acceptFriendRequest(token: String?, requestId: Int): FriendsOperationResult?
+    suspend fun rejectFriendRequest(token: String?, requestId: Int): FriendsOperationResult?
+    suspend fun getSearchProfilesResult(
+        token: String?,
+        query: String,
+        page: Int?
+    ): SearchProfilesResult?
 }
 
 class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRepository {
@@ -267,6 +282,134 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
             logoutResult?.resultCode = response.code()
             logoutResult?.message = logoutResult?.message
             return logoutResult
+        }
+    }
+
+    override suspend fun getFriendsList(token: String?): GetFriendsListResult? {
+        val response: Response<GetFriendsListResult> =
+            tripLogApiService.getFriendsList("Bearer $token")
+
+        val friendsListResult: GetFriendsListResult?
+        if (response.isSuccessful) {
+            friendsListResult = response.body()
+            friendsListResult?.resultCode = response.code()
+            friendsListResult?.message = response.message()
+            return friendsListResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            friendsListResult =
+                Moshi.Builder().build().adapter(GetFriendsListResult::class.java)
+                    .fromJson(errorBody!!)
+            friendsListResult?.resultCode = response.code()
+            friendsListResult?.message = response.message()
+            return friendsListResult
+        }
+    }
+
+    override suspend fun getFriendsRequests(token: String?): GetFriendsRequestsResult? {
+        val response: Response<GetFriendsRequestsResult> =
+            tripLogApiService.getFriendsRequests("Bearer $token")
+
+        val friendsRequestsResult: GetFriendsRequestsResult?
+        if (response.isSuccessful) {
+            friendsRequestsResult = response.body()
+            friendsRequestsResult?.resultCode = response.code()
+            friendsRequestsResult?.message = response.message()
+            return friendsRequestsResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            friendsRequestsResult =
+                Moshi.Builder().build().adapter(GetFriendsRequestsResult::class.java)
+                    .fromJson(errorBody!!)
+            friendsRequestsResult?.resultCode = response.code()
+            friendsRequestsResult?.message = response.message()
+            return friendsRequestsResult
+        }
+    }
+
+    override suspend fun sendFriendRequest(token: String?, userId: Int): FriendsOperationResult? {
+        val response: Response<FriendsOperationResult> =
+            tripLogApiService.sendFriendRequest("Bearer $token", userId)
+
+        val friendsOperationResult: FriendsOperationResult?
+        if (response.isSuccessful) {
+            friendsOperationResult = response.body()
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            friendsOperationResult =
+                Moshi.Builder().build().adapter(FriendsOperationResult::class.java)
+                    .fromJson(errorBody!!)
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        }
+    }
+
+    override suspend fun acceptFriendRequest(
+        token: String?,
+        requestId: Int
+    ): FriendsOperationResult? {
+        val response: Response<FriendsOperationResult> =
+            tripLogApiService.acceptFriendRequest("Bearer $token", requestId)
+
+        val friendsOperationResult: FriendsOperationResult?
+        if (response.isSuccessful) {
+            friendsOperationResult = response.body()
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            friendsOperationResult =
+                Moshi.Builder().build().adapter(FriendsOperationResult::class.java)
+                    .fromJson(errorBody!!)
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        }
+    }
+
+    override suspend fun rejectFriendRequest(
+        token: String?,
+        requestId: Int
+    ): FriendsOperationResult? {
+        val response: Response<FriendsOperationResult> =
+            tripLogApiService.rejectFriendRequest("Bearer $token", requestId)
+
+        val friendsOperationResult: FriendsOperationResult?
+        if (response.isSuccessful) {
+            friendsOperationResult = response.body()
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            friendsOperationResult =
+                Moshi.Builder().build().adapter(FriendsOperationResult::class.java)
+                    .fromJson(errorBody!!)
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        }
+    }
+
+    override suspend fun getSearchProfilesResult(
+        token: String?,
+        query: String,
+        page: Int?
+    ): SearchProfilesResult? {
+        val response: Response<SearchProfilesResult> =
+            tripLogApiService.getSearchProfilesResult("Bearer $token", query, page)
+
+        val searchProfilesResult: SearchProfilesResult?
+        if (response.isSuccessful) {
+            searchProfilesResult = response.body()
+            searchProfilesResult?.resultCode = response.code()
+            return searchProfilesResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            searchProfilesResult =
+                Moshi.Builder().build().adapter(SearchProfilesResult::class.java)
+                    .fromJson(errorBody!!)
+            searchProfilesResult?.resultCode = response.code()
+            return searchProfilesResult
         }
     }
 }

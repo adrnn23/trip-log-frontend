@@ -1,5 +1,6 @@
 package com.example.triplog.profile.presentation
 
+import android.annotation.SuppressLint
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Facebook
 import androidx.compose.material.icons.filled.Link
@@ -19,6 +20,8 @@ import com.example.triplog.main.presentation.BackendResponse
 import com.example.triplog.main.states.LoadingState
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
+import com.example.triplog.profile.data.profile.GetFriendsListResult
+import com.example.triplog.profile.data.profile.GetFriendsRequestsResult
 import com.example.triplog.profile.data.profile.UserProfileResult.TravelPreference
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -28,7 +31,14 @@ sealed class ProfileState {
     data object Unauthenticated : ProfileState()
     data object Idle : ProfileState()
     data object Error : ProfileState()
+    data object LoadingProfileError : ProfileState()
     data object LoggedOut : ProfileState()
+}
+
+sealed class UserProfileSection {
+    data object Main : UserProfileSection()
+    data object FriendsList : UserProfileSection()
+    data object FriendsRequests : UserProfileSection()
 }
 
 data class UserProfileData(
@@ -44,35 +54,46 @@ data class UserProfileData(
 )
 
 
+@SuppressLint("MutableCollectionMutableState")
 class ProfileViewModel(
     private val repository: InterfaceRepository,
     val token: String?,
-    private val sessionManager: SessionManager
+    val sessionManager: SessionManager
 ) :
     ViewModel() {
 
     var profileState by mutableStateOf<ProfileState>(ProfileState.Idle)
+    var profileSection by mutableStateOf<UserProfileSection>(UserProfileSection.Main)
     var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
+    var isOwnProfile by mutableStateOf(false)
 
     var isProgressIndicatorVisible by mutableStateOf(false)
+    var isLoadingListVisible by mutableStateOf(false)
     var isBackendResponseVisible by mutableStateOf(false)
 
     var userProfile by mutableStateOf(UserProfileData())
     var backendResponse = mutableStateOf(BackendResponse())
 
-    fun initParams(iId: Int?, iEmail: String?) {
-        userProfile.id = iId
-        userProfile.email = iEmail
+    var friendsList by mutableStateOf(mutableListOf<GetFriendsListResult.Data?>())
+    var friendsRequests by mutableStateOf(mutableListOf<GetFriendsRequestsResult.Data?>())
+
+    fun initParams(id: Int?) {
+        if (id == sessionManager.getUserId()) {
+            isOwnProfile = true
+            userProfile.id = id
+        } else {
+            isOwnProfile = false
+            userProfile.id = id
+        }
         getUserProfileResult()
     }
 
-    fun clearBackendResponse(){
+    fun clearBackendResponse() {
         backendResponse.value.clearResponse()
     }
 
     companion object {
         fun provideFactory(
-            token: String?,
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application =
@@ -81,7 +102,7 @@ class ProfileViewModel(
                 val sessionManager = application.sessionManager
                 ProfileViewModel(
                     repository = repository,
-                    token = token,
+                    token = sessionManager.getToken(),
                     sessionManager = sessionManager
                 )
             }
@@ -103,28 +124,28 @@ class ProfileViewModel(
     fun logout() {
         loadingState = LoadingState.Loading
         viewModelScope.launch {
-            delay(250)
             try {
-                val result = repository.getLogoutResult(token)
+                val result = repository.getLogoutResult(sessionManager.getToken())
                 if ((result?.resultCode == 200) && (result.message != null)) {
                     profileState = ProfileState.LoggedOut
-                    backendResponse.value.message= result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.message =
+                        result.message + "\nYou will be redirected to the login screen."
                     backendResponse.value.buildBackendResponse()
                 } else if (result?.resultCode == 401 && result.message != null) {
                     profileState = ProfileState.Unauthenticated
-                    backendResponse.value.message= result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.message =
+                        result.message + "\nYou will be redirected to the login screen."
                     backendResponse.value.buildBackendResponse()
                 } else {
                     profileState = ProfileState.Error
-                    backendResponse.value.message= result?.message
+                    backendResponse.value.message = result?.message
                     backendResponse.value.buildBackendResponse()
                 }
             } catch (e: Exception) {
                 profileState = ProfileState.Error
-                backendResponse.value.message= e.message
+                backendResponse.value.message = e.message
                 backendResponse.value.buildBackendResponse()
             }
-            delay(250)
             loadingState = LoadingState.Loaded
         }
     }
@@ -151,17 +172,18 @@ class ProfileViewModel(
                         profileState = ProfileState.Authenticated
                     } else if (result.resultCode == 401) {
                         profileState = ProfileState.Unauthenticated
-                        backendResponse.value.message= result.message + "\nYou will be redirected to the login screen."
+                        backendResponse.value.message =
+                            result.message + "\nYou will be redirected to the login screen."
                         backendResponse.value.buildBackendResponse()
                     } else {
                         profileState = ProfileState.Error
-                        backendResponse.value.message= result.message
+                        backendResponse.value.message = result.message
                         backendResponse.value.buildBackendResponse()
                     }
                 }
             } catch (e: Exception) {
                 profileState = ProfileState.Error
-                backendResponse.value.message= e.message
+                backendResponse.value.message = e.message
                 backendResponse.value.buildBackendResponse()
             }
             delay(250)
@@ -169,22 +191,151 @@ class ProfileViewModel(
         }
     }
 
+    fun getFriendsListResult() {
+        loadingState = LoadingState.Loading
+        viewModelScope.launch {
+            delay(150)
+            try {
+                val token = sessionManager.getToken()
+                val result = repository.getFriendsList(token)
+                if (result != null) {
+                    if (result.resultCode == 200 && result.data != null) {
+                        friendsList = result.data.toMutableList()
+                        profileState = ProfileState.Authenticated
+                        profileSection = UserProfileSection.FriendsList
+                    } else if (result.resultCode == 401) {
+                        profileState = ProfileState.Unauthenticated
+                        backendResponse.value.message =
+                            result.message + "\nYou will be redirected to the login screen."
+                        backendResponse.value.buildBackendResponse()
+                    } else {
+                        profileState = ProfileState.Error
+                        backendResponse.value.message = result.message
+                        backendResponse.value.buildBackendResponse()
+                    }
+                }
+            } catch (e: Exception) {
+                profileState = ProfileState.Error
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
+            }
+            delay(150)
+        }
+        loadingState = LoadingState.Loaded
+    }
+
+    fun getFriendsRequests() {
+        loadingState = LoadingState.Loading
+        viewModelScope.launch {
+            delay(150)
+            try {
+                val token = sessionManager.getToken()
+                val result = repository.getFriendsRequests(token)
+                if (result != null) {
+                    if (result.resultCode == 200 && result.data != null) {
+                        friendsRequests = result.data.toMutableList()
+                        profileState = ProfileState.Authenticated
+                        profileSection = UserProfileSection.FriendsRequests
+                    } else if (result.resultCode == 401) {
+                        profileState = ProfileState.Unauthenticated
+                        backendResponse.value.message =
+                            result.message + "\nYou will be redirected to the login screen."
+                        backendResponse.value.buildBackendResponse()
+                    } else {
+                        profileState = ProfileState.Error
+                        backendResponse.value.message = result.message
+                        backendResponse.value.buildBackendResponse()
+                    }
+                }
+            } catch (e: Exception) {
+                profileState = ProfileState.Error
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
+            }
+            delay(150)
+        }
+        loadingState = LoadingState.Loaded
+    }
+
+    fun acceptFriendRequest(requestId: Int) {
+        val token = sessionManager.getToken()
+        viewModelScope.launch {
+            try {
+                val result = repository.acceptFriendRequest(token, requestId)
+                if (result?.resultCode == 200) {
+                    profileState = ProfileState.Authenticated
+                    getFriendsRequests()
+                } else if (result?.resultCode == 400) {
+                    profileState = ProfileState.Error
+                    backendResponse.value.message =
+                        result.message
+                    backendResponse.value.buildBackendResponse()
+                } else if (result?.resultCode == 401) {
+                    profileState = ProfileState.Unauthenticated
+                    backendResponse.value.message =
+                        result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.buildBackendResponse()
+                } else {
+                    profileState = ProfileState.Error
+                    backendResponse.value.message = result?.message
+                    backendResponse.value.buildBackendResponse()
+                }
+            } catch (e: Exception) {
+                profileState = ProfileState.Error
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
+            }
+        }
+    }
+
+    fun rejectFriendRequest(requestId: Int) {
+        val token = sessionManager.getToken()
+        viewModelScope.launch {
+            try {
+                val result = repository.rejectFriendRequest(token, requestId)
+                if (result?.resultCode == 200) {
+                    profileState = ProfileState.Authenticated
+                    getFriendsRequests()
+                } else if (result?.resultCode == 400) {
+                    profileState = ProfileState.Error
+                    backendResponse.value.message =
+                        result.message
+                    backendResponse.value.buildBackendResponse()
+                } else if (result?.resultCode == 401) {
+                    profileState = ProfileState.Unauthenticated
+                    backendResponse.value.message =
+                        result.message + "\nYou will be redirected to the login screen."
+                    backendResponse.value.buildBackendResponse()
+                } else {
+                    profileState = ProfileState.Error
+                    backendResponse.value.message = result?.message
+                    backendResponse.value.buildBackendResponse()
+                }
+            } catch (e: Exception) {
+                profileState = ProfileState.Error
+                backendResponse.value.message = e.message
+                backendResponse.value.buildBackendResponse()
+            }
+        }
+    }
+
     fun logoutProcess(navController: NavController) {
         isBackendResponseVisible = false
         sessionManager.clearToken()
-        navController.popBackStack()
         navController.navigate(Screen.LoginScreen.destination)
     }
 
     fun homeReturnProcess(navController: NavController) {
         isBackendResponseVisible = false
-        navController.popBackStack()
         navController.navigate(Screen.MainPageScreen.destination)
     }
 
     fun handleProfileState() {
         when (profileState) {
             ProfileState.Error ->
+                isBackendResponseVisible = true
+
+            ProfileState.LoadingProfileError ->
                 isBackendResponseVisible = true
 
             ProfileState.Unauthenticated ->

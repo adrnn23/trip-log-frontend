@@ -42,37 +42,19 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "${Screen.ProfileScreen.destination}/{token}/{email}/{id}",
+            route = "${Screen.ProfileScreen.destination}/{id}",
             arguments = listOf(
-                navArgument("token") { type = NavType.StringType },
-                navArgument("email") { type = NavType.StringType },
                 navArgument("id") { type = NavType.IntType })
         ) { backStackEntry ->
-            val token = backStackEntry.arguments?.getString("token")
-            val email = backStackEntry.arguments?.getString("email")
             val id = backStackEntry.arguments?.getInt("id")
-            if (token != null && id != null && email != null) {
-                ProfileScreen(navController = navController, token = token, id = id, email = email)
+            if (id != null) {
+                ProfileScreen(navController = navController, id = id)
             }
         }
         composable(
-            route = "${Screen.EditProfileScreen.destination}/{token}/{id}/{email}",
-            arguments = listOf(
-                navArgument("token") { type = NavType.StringType },
-                navArgument("id") { type = NavType.IntType },
-                navArgument("email") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val token = backStackEntry.arguments?.getString("token")
-            val id = backStackEntry.arguments?.getInt("id")
-            val email = backStackEntry.arguments?.getString("email")
-            if (token != null && id != null && email != null) {
-                EditProfileScreen(
-                    navController = navController,
-                    token = token,
-                    id = id,
-                    email = email
-                )
-            }
+            route = Screen.EditProfileScreen.destination
+        ) {
+            EditProfileScreen(navController = navController,)
         }
         composable(route = Screen.MainPageScreen.destination) {
             MainPageScreen(navController = navController)

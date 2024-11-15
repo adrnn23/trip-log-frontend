@@ -85,19 +85,13 @@ fun ApplicationBottomBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApplicationTopBar(title: String, logout: () -> Unit) {
+fun ApplicationTopBar(title: String, icon: @Composable () -> Unit, logout: () -> Unit) {
     var showMenu by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(text = title) },
-        /*        navigationIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Go back to home",
-                            modifier = Modifier.size(30.dp)
-                        )
-                    }
-                },*/
+        navigationIcon = {
+            icon()
+        },
         actions = {
             Box(modifier = Modifier.clickable {
                 showMenu = !showMenu
@@ -129,15 +123,56 @@ fun ApplicationTopBar(title: String, logout: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopApplicationBar(title: String, navController: NavController) {
+fun TopBar(
+    title: String,
+    navIcon: @Composable () -> Unit,
+    icon: @Composable () -> Unit,
+    logout: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    TopAppBar(
+        title = { Text(text = title) },
+        navigationIcon = { navIcon() },
+        actions = {
+            icon()
+            Box(modifier = Modifier.clickable {
+                showMenu = !showMenu
+            }) {
+                Icon(
+                    Icons.Filled.Menu,
+                    contentDescription = "Menu",
+                    modifier = Modifier.size(30.dp)
+                )
+                DropdownMenu(
+                    modifier = Modifier.align(Alignment.Center),
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        onClick = {
+                            showMenu = false
+                            logout()
+                        },
+                        text = { Text(text = stringResource(R.string.logout), fontSize = 14.sp) }
+                    )
+                }
+
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopApplicationBar(title: String, onClick: () -> Unit) {
     var showMenu by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(text = title) },
         navigationIcon = {
-            IconButton(onClick = { }) {
+            IconButton(onClick = { onClick() }) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Go back to home",
+                    contentDescription = null,
                     modifier = Modifier.size(30.dp)
                 )
             }

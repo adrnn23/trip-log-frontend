@@ -38,12 +38,12 @@ import com.example.triplog.profile.presentation.sections.EditTravelPreferencesSe
 import com.example.triplog.profile.presentation.sections.UpdatePasswordSection
 
 @Composable
-fun EditProfileScreen(token: String?, id: Int?, email: String?, navController: NavController) {
+fun EditProfileScreen(navController: NavController) {
     val viewModel: EditProfileViewModel =
         viewModel(factory = EditProfileViewModel.provideFactory())
 
     LaunchedEffect(key1 = Unit) {
-        viewModel.initParams(id, email)
+        viewModel.initParams()
     }
 
     LaunchedEffect(key1 = viewModel.loadingState) {
@@ -77,7 +77,7 @@ fun EditProfileScreen(token: String?, id: Int?, email: String?, navController: N
                 topBar = {
                     when (viewModel.section) {
                         EditUserProfileSection.Main -> {
-                            TopApplicationBar(stringResource(R.string.editProfile), navController)
+                            TopApplicationBar(stringResource(R.string.editProfile)) { navController.popBackStack() }
                         }
 
                         EditUserProfileSection.EditTravelPreferences -> {

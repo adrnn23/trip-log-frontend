@@ -5,9 +5,13 @@ import com.example.triplog.authorization.login.data.LoginResult
 import com.example.triplog.authorization.login.data.LogoutResult
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
+import com.example.triplog.main.data.SearchProfilesResult
 import com.example.triplog.profile.data.profile.AuthenticatedUserProfileResult
 import com.example.triplog.profile.data.profile.EditUserProfileRequest
 import com.example.triplog.profile.data.profile.EditUserProfileResult
+import com.example.triplog.profile.data.profile.FriendsOperationResult
+import com.example.triplog.profile.data.profile.GetFriendsListResult
+import com.example.triplog.profile.data.profile.GetFriendsRequestsResult
 import com.example.triplog.profile.data.profile.TravelPreference
 import com.example.triplog.profile.data.profile.UserProfileResult
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordRequest
@@ -25,6 +29,7 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 
 interface TripLogApiService {
@@ -72,6 +77,47 @@ interface TripLogApiService {
     @Headers("Content-Type: application/json", "Accept: application/json")
     @POST("/api/auth/logout")
     suspend fun getLogoutResult(@Header("Authorization") token: String?): Response<LogoutResult>
+
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @GET("/api/friends/list")
+    suspend fun getFriendsList(
+        @Header("Authorization") token: String?
+    ): Response<GetFriendsListResult>
+
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @GET("/api/friends/requests")
+    suspend fun getFriendsRequests(
+        @Header("Authorization") token: String?
+    ): Response<GetFriendsRequestsResult>
+
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @POST("/api/friends/send-request/{user}")
+    suspend fun sendFriendRequest(
+        @Header("Authorization") token: String?,
+        @Path("user") id: Int
+    ): Response<FriendsOperationResult>
+
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @POST("/api/friends/accept-request/{friend_request}")
+    suspend fun acceptFriendRequest(
+        @Header("Authorization") token: String?,
+        @Path("friend_request") id: Int
+    ): Response<FriendsOperationResult>
+
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @POST("/api/friends/reject-request/{friend_request}")
+    suspend fun rejectFriendRequest(
+        @Header("Authorization") token: String?,
+        @Path("friend_request") id: Int
+    ): Response<FriendsOperationResult>
+
+    @Headers("Content-Type: application/json", "Accept: application/json")
+    @GET("/api/profiles/search")
+    suspend fun getSearchProfilesResult(
+        @Header("Authorization") token: String?,
+        @Query("query") query: String,
+        @Query("page") page: Int?,
+    ): Response<SearchProfilesResult>
 }
 
 interface RepositoryContainer {
@@ -79,7 +125,7 @@ interface RepositoryContainer {
 }
 
 class TripLogRetrofitClient : RepositoryContainer {
-    private val url = "http://192.168.1.9/"
+    private val url = "http://192.168.0.106/"
 
     private val moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     private val retrofit: Retrofit = Retrofit.Builder()

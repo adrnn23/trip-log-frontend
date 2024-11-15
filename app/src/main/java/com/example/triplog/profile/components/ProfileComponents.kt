@@ -1,6 +1,5 @@
 package com.example.triplog.profile.components
 
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
@@ -29,6 +28,7 @@ import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -108,6 +108,24 @@ fun ProfileUsername(username: String?) {
         text = username.toString(),
         fontSize = 18.sp
     )
+}
+
+@Composable
+fun FriendsList(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clickable { onClick() }) {
+        Text(
+            text = stringResource(R.string.friends),
+            fontSize = 16.sp
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Icon(
+            Icons.Default.People,
+            contentDescription = stringResource(R.string.friends),
+            modifier = Modifier.size(18.dp)
+        )
+    }
 }
 
 @Composable
@@ -207,6 +225,12 @@ fun ProfileMainInfoComponent(
             Column {
                 ProfileUsername(viewModel.userProfile.username)
                 Spacer(modifier = Modifier.height(4.dp))
+                if (viewModel.isOwnProfile) {
+                    FriendsList { viewModel.getFriendsListResult() }
+                }
+            }
+            Spacer(modifier = Modifier.width(20.dp))
+            if (viewModel.isOwnProfile) {
                 EditProfileButton(navController, viewModel)
             }
         }
@@ -214,9 +238,15 @@ fun ProfileMainInfoComponent(
         Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
             StatisticCard(tripsNumber = viewModel.userProfile.tripsCount, label = R.string.travels)
             Spacer(modifier = Modifier.width(8.dp))
-            StatisticCard(tripsNumber = viewModel.userProfile.plannedCount, label = R.string.planned)
+            StatisticCard(
+                tripsNumber = viewModel.userProfile.plannedCount,
+                label = R.string.planned
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            StatisticCard(tripsNumber = viewModel.userProfile.favoriteCount, label = R.string.favorite)
+            StatisticCard(
+                tripsNumber = viewModel.userProfile.favoriteCount,
+                label = R.string.favorite
+            )
         }
         DividerComponent()
         TravelPreferencesComponent(viewModel, Modifier)
@@ -229,8 +259,7 @@ fun EditProfileButton(navController: NavController, viewModel: ProfileViewModel)
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiaryContainer),
         onClick = {
-            Log.d("halo email click", viewModel.userProfile.email.toString())
-            navController.navigate("${Screen.EditProfileScreen.destination}/${viewModel.token}/${viewModel.userProfile.id}/${viewModel.userProfile.email}")
+            navController.navigate(Screen.EditProfileScreen.destination)
         }) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -415,16 +444,16 @@ fun AboutMeComponent(bio: String?) {
             if (bio.length > 192) {
                 if (!extended) {
                     Column {
-                        Text(text = bio.substring(0, 191) + "...", fontSize = 12.sp,)
+                        Text(text = bio.substring(0, 191) + "...", fontSize = 12.sp)
                     }
                 } else {
                     Column {
-                        Text(text = bio, fontSize = 12.sp,)
+                        Text(text = bio, fontSize = 12.sp)
                     }
                 }
             } else {
                 Column {
-                    Text(text = bio, fontSize = 12.sp,)
+                    Text(text = bio, fontSize = 12.sp)
                 }
             }
         }

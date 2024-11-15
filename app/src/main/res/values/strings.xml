@@ -24,6 +24,12 @@
     <string name="favoriteCategories">Favorite Travel Categories</string>
     <string name="aboutMe">About me</string>
     <string name="travelPreferences">Travel Preferences</string>
+    <string name="friends">Friends</string>
+    <string name="friend">Friend</string>
+    <string name="friendsRequests">Friends requests</string>
+    <string name="invitationSent">Invitation sent</string>
+    <string name="addToFriends">Add to friends</string>
+    <string name="youHaveBeenInvited">You have been invited to be a friend</string>
 
     <string name="travels">Travels</string>
     <string name="favorite">Favorite travels</string>
@@ -117,7 +123,5 @@
     <string name="search">Search</string>
     <string name="placePhoto">Place photo</string>
     <string name="changePlacePhoto">Change place photo</string>
-
-
 
 </resources>
