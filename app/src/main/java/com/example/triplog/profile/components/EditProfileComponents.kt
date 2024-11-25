@@ -1,7 +1,11 @@
 package com.example.triplog.profile.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -24,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Error
@@ -54,12 +58,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.InformationDialog
 import com.example.triplog.authorization.registration.components.EmailInput
@@ -72,33 +80,63 @@ import com.example.triplog.profile.presentation.EditUserProfileSection
 import com.example.triplog.travel.components.ButtonComponent
 
 @Composable
+fun EditBioComponent(viewModel: EditProfileViewModel) {
+    var enabled by remember { mutableStateOf(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(2.dp)
+    ) {
+        BioInput(
+            R.string.biography,
+            viewModel.bioTemp,
+            enabled = enabled,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(6.dp),
+            onValueChanged = { viewModel.bioTemp = it }
+        )
+        ChangeButton(
+            modifier = Modifier,
+            icon = Icons.Default.Edit,
+            changeAction = {
+                enabled = !enabled
+            })
+    }
+}
+
+@Composable
 fun BioInput(
-    @StringRes label: Int,
-    value: String,
-    onValueChanged: (String) -> Unit,
+    @StringRes labelRes: Int,
+    text: String,
     enabled: Boolean,
-    modifier: Modifier
+    modifier: Modifier = Modifier,
+    onValueChanged: (String) -> Unit
 ) {
-    val bioIcon = @Composable {
-        Icon(
-            Icons.Default.Description,
-            contentDescription = "bioIcon",
-            tint = MaterialTheme.colorScheme.primary
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = onValueChanged,
+            enabled = enabled,
+            maxLines = 6,
+            textStyle = TextStyle(fontSize = 12.sp),
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(id = labelRes)) }
+        )
+        Text(
+            text = if (512 - text.length >= 0) {
+                "${512 - text.length} characters remaining"
+            } else "Too many characters!",
+            style = TextStyle(fontSize = 10.sp),
+            modifier = Modifier
+                .align(Alignment.End)
+                .padding(top = 4.dp)
         )
     }
-    OutlinedTextField(
-        label = { Text(stringResource(label)) },
-        value = value,
-        onValueChange = onValueChanged,
-        leadingIcon = bioIcon,
-        enabled = enabled,
-        maxLines = 4,
-        modifier = modifier,
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Next
-        )
-    )
 }
+
 
 @Composable
 fun LinkInput(
@@ -129,22 +167,102 @@ fun LinkInput(
 }
 
 @Composable
-fun EditAvatarComponent() {
-    Box(modifier = Modifier.size(140.dp)) {
-        Image(
-            painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            modifier = Modifier
-                .size(size = 120.dp)
-                .border(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(20.dp)
-                )
-                .clip(RoundedCornerShape(20.dp))
-                .align(Alignment.Center)
+fun EditAvatarComponent(viewModel: EditProfileViewModel) {
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            viewModel.avatar = uri
+        }
+    val showPhoto = remember { mutableStateOf(false) }
+    Column(
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Text(
+            stringResource(R.string.editAvatar),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
         )
-        ChangeButton(icon = Icons.Default.Edit, modifier = Modifier.align(Alignment.BottomEnd)) {}
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(140.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { showPhoto.value = true }
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center) {
+            if (viewModel.avatar != null) {
+                val painter = rememberAsyncImagePainter(
+                    ImageRequest.Builder(LocalContext.current)
+                        .data(data = viewModel.avatar)
+                        .build()
+                )
+                Image(
+                    painter = painter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .align(Alignment.Center)
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.noPhotoSelected),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+            ChangeButton(
+                icon = Icons.Default.Edit,
+                modifier = Modifier.align(Alignment.BottomEnd)
+            ) {
+                launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+        }
+    }
+    if (showPhoto.value) {
+        AlertDialog(
+            onDismissRequest = { showPhoto.value = false },
+            title = {
+                Text(text = stringResource(R.string.travelPhoto))
+            },
+            text = {
+                if (viewModel.avatar != null) {
+                    val painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(data = viewModel.avatar)
+                            .build()
+                    )
+                    Image(
+                        painter = painter,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                            .padding(16.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Text(text = stringResource(R.string.noPhotoSelected))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showPhoto.value = false }
+                ) {
+                    Text(text = stringResource(R.string.close))
+                }
+            }
+        )
     }
 }
 
@@ -275,7 +393,7 @@ fun EditEmailComponent(viewModel: EditProfileViewModel) {
 fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
     Column(
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -283,36 +401,37 @@ fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10.dp)
             )
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        TitleComponent(
-            R.string.travelPreferences,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.travelPreferences),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
         )
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(4.dp))
-            if (viewModel.travelPreferencesList.isNotEmpty()) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(24.dp, 108.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(viewModel.travelPreferencesList.filter { it!!.isSelected }) { item ->
-                        if (item != null) {
-                            TravelPreferenceCard(item)
-                        }
+        if (viewModel.travelPreferencesList.isNotEmpty()) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(24.dp, 108.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(viewModel.travelPreferencesList.filter { it!!.isSelected }) { item ->
+                    if (item != null) {
+                        TravelPreferenceCard(item)
                     }
                 }
-            } else {
-                Text(text = stringResource(R.string.addTravelPreferences), fontSize = 12.sp)
             }
+        } else {
+            Text(
+                text = stringResource(R.string.addTravelPreferences),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
+
         ButtonComponent(
             R.string.editPreferences,
             modifier = Modifier.width(220.dp),
@@ -323,34 +442,6 @@ fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
                     viewModel.travelPreferencesList.toMutableList()
             }
         )
-    }
-}
-
-@Composable
-fun EditBioComponent(viewModel: EditProfileViewModel) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(2.dp)
-    ) {
-        BioInput(
-            R.string.biography,
-            viewModel.editProfile.bio ?: "",
-            enabled = false,
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(6.dp),
-            onValueChanged = { }
-        )
-        ChangeButton(
-            modifier = Modifier,
-            icon = Icons.Default.Edit,
-            changeAction = {
-                viewModel.bioTemp = viewModel.editProfile.bio ?: ""
-                viewModel.section = EditUserProfileSection.EditBiography
-            })
     }
 }
 
@@ -532,12 +623,10 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                             viewModel.links[indexToRemove!!] =
                                 (LinkData("Facebook", Icons.Default.Facebook, ""))
                         }
-
                         1 -> {
                             viewModel.links[indexToRemove!!] =
                                 (LinkData("Instagram", Icons.Default.Link, ""))
                         }
-
                         2 -> {
                             viewModel.links[indexToRemove!!] =
                                 (LinkData("X", Icons.Default.Link, ""))
@@ -554,7 +643,7 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
     }
     Column(
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -562,22 +651,18 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10.dp)
             )
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleComponent(
-                R.string.links,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
+        Text(
+            stringResource(R.string.links),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
         if (viewModel.links.isNotEmpty()) {
             LazyColumn(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .padding(6.dp)
                     .heightIn(0.dp, 128.dp)
                     .fillMaxWidth()
             ) {
@@ -604,14 +689,18 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
+                            Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(4.dp))
                         }
                     }
                 }
             }
         } else {
-            Text(text = stringResource(R.string.addMaxThreeLinks), fontSize = 12.sp)
+            Text(
+                text = stringResource(R.string.addMaxThreeLinks),
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-        Spacer(modifier = Modifier.height(4.dp))
 
         ButtonComponent(
             R.string.addLink,
@@ -700,7 +789,7 @@ fun AddLinkForm(
 fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -708,41 +797,34 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10.dp)
             )
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        TitleComponent(
-            R.string.editBasicInformation,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.editBasicInformation),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        TitleComponent(
-            R.string.username,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+        Text(
+            stringResource(R.string.username),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
         Text(text = viewModel.editProfile.name ?: "", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
 
-        TitleComponent(
-            R.string.email,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.email),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
         Text(text = viewModel.editProfile.email ?: "", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
 
-        TitleComponent(
-            R.string.biography,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.biography),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
         Text(text = viewModel.editProfile.bio ?: "", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
 
         ButtonComponent(
             R.string.editBasicInformation,

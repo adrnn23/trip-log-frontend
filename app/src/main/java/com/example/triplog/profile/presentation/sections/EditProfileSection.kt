@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -59,20 +63,28 @@ fun EditProfileSection(
             },
             onDismissClick = {
                 viewModel.isSaveChangesDialogVisible = false
-                navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getToken()}/${viewModel.editProfile.email}/${viewModel.editProfile.id}")
+                navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.editProfile.id}/4")
             })
     }
     LazyColumn(
         modifier = Modifier
-            .alpha(alpha.value)
             .fillMaxSize()
-            .padding(8.dp),
+            .padding(horizontal = 16.dp),
         contentPadding = innerpadding,
-        verticalArrangement = Arrangement.Top,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.Start
     ) {
         item {
-            EditAvatarComponent()
+            Text(
+                stringResource(R.string.editYourProfile),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+        }
+        item {
+            EditAvatarComponent(viewModel)
             Spacer(modifier = Modifier.height(10.dp))
         }
 
@@ -80,6 +92,7 @@ fun EditProfileSection(
             EditBasicInformation(viewModel, onClick = {
                 viewModel.section =
                     EditUserProfileSection.EditBasicInformation
+                viewModel.bioTemp = viewModel.editProfile.bio ?: ""
             })
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -99,6 +112,7 @@ fun EditProfileSection(
                 viewModel.section =
                     EditUserProfileSection.UpdatePassword
             }
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }

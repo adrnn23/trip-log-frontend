@@ -8,16 +8,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -41,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.data.BottomNavItem
 import com.example.triplog.profile.components.EditButtonComponent
@@ -85,45 +82,7 @@ fun ApplicationBottomBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApplicationTopBar(title: String, icon: @Composable () -> Unit, logout: () -> Unit) {
-    var showMenu by remember { mutableStateOf(false) }
-    TopAppBar(
-        title = { Text(text = title) },
-        navigationIcon = {
-            icon()
-        },
-        actions = {
-            Box(modifier = Modifier.clickable {
-                showMenu = !showMenu
-            }) {
-                Icon(
-                    Icons.Filled.Menu,
-                    contentDescription = "Menu",
-                    modifier = Modifier.size(30.dp)
-                )
-                DropdownMenu(
-                    modifier = Modifier.align(Alignment.Center),
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        onClick = {
-                            showMenu = false
-                            logout()
-                        },
-                        text = { Text(text = stringResource(R.string.logout), fontSize = 14.sp) }
-                    )
-                }
-
-            }
-
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TopBar(
+fun MainTopBar(
     title: String,
     navIcon: @Composable () -> Unit,
     icon: @Composable () -> Unit,
@@ -132,7 +91,9 @@ fun TopBar(
     var showMenu by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(text = title) },
-        navigationIcon = { navIcon() },
+        navigationIcon = {
+            navIcon()
+        },
         actions = {
             icon()
             Box(modifier = Modifier.clickable {
@@ -164,99 +125,25 @@ fun TopBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopApplicationBar(title: String, onClick: () -> Unit) {
-    var showMenu by remember { mutableStateOf(false) }
+fun TopApplicationBar(
+    title: @Composable () -> Unit, onClick: () -> Unit
+) {
     TopAppBar(
-        title = { Text(text = title) },
+        title = { title() },
         navigationIcon = {
             IconButton(onClick = { onClick() }) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
+                    Icons.Outlined.ArrowBack,
                     contentDescription = null,
                     modifier = Modifier.size(30.dp)
                 )
             }
-        },
-        actions = {
-            Box(modifier = Modifier.clickable {
-                showMenu = !showMenu
-            }) {
-                Icon(
-                    Icons.Filled.Menu,
-                    contentDescription = "Menu",
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-
-        }
-
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CreateTravelTopBar(title: String, onClick: () -> Unit) {
-    TopAppBar(
-        title = { Text(text = title) },
-        navigationIcon = {
-            IconButton(onClick = {
-                onClick()
-            }) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Go back to home",
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditProfileTopBar(title: String, backToEditProfile: () -> Unit) {
-    TopAppBar(
-        title = { Text(text = title) },
-        navigationIcon = {
-            IconButton(onClick = { backToEditProfile() }) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Go back to edit profile",
-                    modifier = Modifier.size(30.dp)
-                )
-            }
         }
     )
 }
 
 @Composable
-fun EditProfileBottomBar(
-    @StringRes buttonText: Int,
-    onClick: () -> Unit
-) {
-    BottomAppBar(actions = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround,
-
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            EditButtonComponent(
-                buttonText,
-                MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.fillMaxWidth(0.9f)
-            ) {
-                onClick()
-            }
-        }
-    }
-    )
-}
-
-
-@Composable
-fun CreateTravelBottomBar(
+fun ButtonBottomBar(
     @StringRes buttonText: Int,
     onClick: () -> Unit
 ) {

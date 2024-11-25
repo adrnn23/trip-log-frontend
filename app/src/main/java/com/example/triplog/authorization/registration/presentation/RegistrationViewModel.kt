@@ -12,11 +12,10 @@ import androidx.navigation.NavController
 import com.example.triplog.main.TripLogApplication
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
+import com.example.triplog.main.LoadingState
 import com.example.triplog.main.SessionManager
 import com.example.triplog.main.navigation.Screen
-import com.example.triplog.main.states.LoadingState
 import com.example.triplog.network.InterfaceRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
 

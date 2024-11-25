@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -231,7 +232,7 @@ fun ProfileMainInfoComponent(
             }
             Spacer(modifier = Modifier.width(20.dp))
             if (viewModel.isOwnProfile) {
-                EditProfileButton(navController, viewModel)
+                EditProfileButton(navController)
             }
         }
         DividerComponent()
@@ -254,7 +255,7 @@ fun ProfileMainInfoComponent(
 }
 
 @Composable
-fun EditProfileButton(navController: NavController, viewModel: ProfileViewModel) {
+fun EditProfileButton(navController: NavController) {
     Button(
         shape = RoundedCornerShape(10.dp),
         colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiaryContainer),
@@ -288,7 +289,7 @@ fun Link(link: LinkData) {
         addStyle(
             SpanStyle(
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 12.sp,
+                fontStyle = MaterialTheme.typography.bodyMedium.fontStyle,
                 textDecoration = TextDecoration.Underline
             ), 0, link.link.length
         )
@@ -493,4 +494,26 @@ fun DividerComponent() {
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(modifier = Modifier.height(8.dp))
+}
+
+@Composable
+fun DeleteFriendButton(onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clickable { onClick() }) {
+        Icon(
+            imageVector = Icons.Default.PersonRemove,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier
+                .size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = stringResource(R.string.deleteFriend),
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            fontSize = 12.sp
+        )
+    }
 }

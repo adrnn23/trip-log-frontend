@@ -52,10 +52,10 @@ fun EditBasicInformationSection(innerpadding: PaddingValues, viewModel: EditProf
             EditUsernameComponent(viewModel)
         }
         item {
-            EditEmailComponent(viewModel)
+            EditBioComponent(viewModel)
         }
         item {
-            EditBioComponent(viewModel)
+            EditEmailComponent(viewModel)
         }
     }
 }

@@ -67,5 +67,4 @@ fun ProfileSection(
             Spacer(modifier = Modifier.height(4.dp))
         }
     }
-
 }

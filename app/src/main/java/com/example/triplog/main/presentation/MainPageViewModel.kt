@@ -1,7 +1,6 @@
 package com.example.triplog.main.presentation
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -12,11 +11,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
+import com.example.triplog.main.BackendResponse
+import com.example.triplog.main.LoadingState
+import com.example.triplog.main.ResponseHandler
 import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.data.SearchProfilesResult
+import com.example.triplog.main.data.UserID
 import com.example.triplog.main.navigation.Screen
-import com.example.triplog.main.states.LoadingState
 import com.example.triplog.network.InterfaceRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,38 +43,11 @@ data class AuthenticatedUserProfileData(
     var email: String? = "",
 )
 
-class BackendResponse(
-    var message: String? = "",
-    private var errorList: MutableList<String?> = emptyList<String?>().toMutableList()
-) {
-    init {
-        buildBackendResponse()
-    }
-
-    var errors: String = ""
-
-    fun addError(error: String?) {
-        errorList.add(error)
-    }
-
-    fun buildBackendResponse() {
-        errors = message + "\n"
-        errorList.forEach { item ->
-            errors = "$errors- $item\n"
-        }
-    }
-
-    fun clearResponse() {
-        errorList.clear()
-        errors = ""
-        message = ""
-    }
-}
-
 @SuppressLint("MutableCollectionMutableState")
 class MainPageViewModel(
     private val repository: InterfaceRepository,
-    val sessionManager: SessionManager
+    val sessionManager: SessionManager,
+    val responseHandler: ResponseHandler
 ) :
     ViewModel() {
 
@@ -80,22 +55,125 @@ class MainPageViewModel(
     var mainPageSection: MainPageSection by mutableStateOf(MainPageSection.Main)
     var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
 
-    var authenticatedUserProfile: AuthenticatedUserProfileData by mutableStateOf(
+    private var authenticatedUserProfile: AuthenticatedUserProfileData by mutableStateOf(
         AuthenticatedUserProfileData()
     )
-    var backendResponse = mutableStateOf(BackendResponse())
+
+    /**
+     * Flags which are used by UI to display individual parts of the UI such as dialogues, loading effect.
+     */
     var isProgressIndicatorVisible by mutableStateOf(false)
     var isBackendResponseVisible by mutableStateOf(false)
+    var isLogoutDialogVisible by mutableStateOf(false)
 
-    fun clearBackendResponse() {
-        backendResponse.value.clearResponse()
+    var query by mutableStateOf("")
+    var page by mutableIntStateOf(1)
+    var searchedProfilesList by mutableStateOf<MutableList<SearchProfilesResult.Data?>?>(null)
+
+    companion object {
+        val factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application =
+                    (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
+                val repository = application.container.repository
+                val sessionManager = application.sessionManager
+                val responseHandler = ResponseHandler()
+                MainPageViewModel(
+                    repository = repository,
+                    sessionManager = sessionManager,
+                    responseHandler = responseHandler
+                )
+            }
+        }
+    }
+
+    private fun processUnauthenticatedState(backendResponse: BackendResponse) {
+        mainPageState = MainPageState.Unauthenticated
+        responseHandler.showMessage(backendResponse)
+    }
+
+    private fun processErrorState(backendResponse: BackendResponse) {
+        mainPageState = MainPageState.Error
+        responseHandler.showMessage(backendResponse)
+    }
+
+    private fun processLoggedOutState(backendResponse: BackendResponse) {
+        mainPageState = MainPageState.LoggedOut
+        responseHandler.showMessage(backendResponse)
+    }
+
+    private fun processAuthenticatedState(backendResponse: BackendResponse) {
+        mainPageState = MainPageState.Authenticated
+        responseHandler.showMessage(backendResponse)
+    }
+
+    private fun processAuthenticationErrorState(backendResponse: BackendResponse) {
+        mainPageState = MainPageState.AuthenticationError
+        responseHandler.showMessage(backendResponse)
+    }
+
+    fun handleMainPageState() {
+        isBackendResponseVisible = when (mainPageState) {
+            MainPageState.Error -> true
+            MainPageState.Authenticated -> false
+            MainPageState.Unauthenticated -> true
+            MainPageState.LoggedOut -> true
+            MainPageState.AuthenticationError -> true
+            else -> false
+        }
+    }
+
+    fun handleProcesses(navController: NavController) {
+        when (mainPageState) {
+            MainPageState.Error -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+            }
+
+            MainPageState.Authenticated -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+            }
+
+            MainPageState.Unauthenticated -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+                logoutProcess(navController = navController)
+            }
+
+            MainPageState.LoggedOut -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+                logoutProcess(navController = navController)
+            }
+
+            MainPageState.AuthenticationError -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+                logoutProcess(navController = navController)
+            }
+
+            else -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+            }
+        }
+    }
+
+    fun handleLoadingState() {
+        isProgressIndicatorVisible =
+            loadingState == LoadingState.Loading
+    }
+
+    private fun logoutProcess(navController: NavController) {
+        sessionManager.clearToken()
+        navController.navigate(Screen.LoginScreen.destination)
     }
 
     fun getAuthenticatedUserProfileData() {
         loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
-            delay(250)
             try {
                 val result = repository.getAuthenticatedUserProfileResult(token)
                 if ((result?.resultCode == 200) && (result.id != null) && (result.name != null) && (result.email != null)) {
@@ -106,21 +184,16 @@ class MainPageViewModel(
                     sessionManager.saveUserName(result.name)
                     mainPageState = MainPageState.Authenticated
                 } else if (result?.resultCode == 401) {
-                    mainPageState = MainPageState.Unauthenticated
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result.message)
+                    processUnauthenticatedState(backendResponse)
                 } else {
-                    mainPageState = MainPageState.AuthenticationError
-                    backendResponse.value.message = result?.message
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result?.message)
+                    processAuthenticationErrorState(backendResponse)
                 }
             } catch (e: Exception) {
-                mainPageState = MainPageState.AuthenticationError
-                backendResponse.value.message = e.message
-                backendResponse.value.buildBackendResponse()
+                val backendResponse = BackendResponse(message = e.message)
+                processAuthenticationErrorState(backendResponse)
             }
-            delay(250)
             loadingState = LoadingState.Loaded
         }
     }
@@ -131,60 +204,47 @@ class MainPageViewModel(
             try {
                 val result = repository.getLogoutResult(token)
                 if ((result?.resultCode == 200) && (result.message != null)) {
-                    mainPageState = MainPageState.LoggedOut
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result.message)
+                    processLoggedOutState(backendResponse)
                 } else if (result?.resultCode == 401 && result.message != null) {
-                    mainPageState = MainPageState.Unauthenticated
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result.message)
+                    processUnauthenticatedState(backendResponse)
                 } else {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message = result?.message
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result?.message)
+                    processErrorState(backendResponse)
                 }
             } catch (e: Exception) {
-                mainPageState = MainPageState.Error
-                backendResponse.value.message = e.message
-                backendResponse.value.buildBackendResponse()
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
             }
         }
     }
-
-    var query by mutableStateOf("")
-    var page by mutableIntStateOf(1)
-    var searchedProfilesList by mutableStateOf<MutableList<SearchProfilesResult.Data?>?>(null)
 
     fun getSearchProfilesResult() {
         loadingState = LoadingState.Loading
         searchedProfilesList?.clear()
         val token = sessionManager.getToken()
         viewModelScope.launch {
-            delay(200)
+            delay(100)
             try {
                 val result = repository.getSearchProfilesResult(token, query, page)
                 if ((result?.resultCode == 200) && (result.data != null)) {
                     searchedProfilesList =
                         result.data as MutableList<SearchProfilesResult.Data?>?
-                    mainPageState = MainPageState.Authenticated
+                    val backendResponse = BackendResponse()
+                    processAuthenticatedState(backendResponse)
                 } else if (result?.resultCode == 401) {
-                    mainPageState = MainPageState.Unauthenticated
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result.message)
+                    processUnauthenticatedState(backendResponse)
                 } else {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message = result?.message
-                    backendResponse.value.buildBackendResponse()
+                    val backendResponse = BackendResponse(message = result?.message)
+                    processErrorState(backendResponse)
                 }
             } catch (e: Exception) {
-                mainPageState = MainPageState.Error
-                backendResponse.value.message = e.message
-                backendResponse.value.buildBackendResponse()
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
             }
-            delay(200)
+            delay(100)
             loadingState = LoadingState.Loaded
         }
     }
@@ -194,28 +254,26 @@ class MainPageViewModel(
         viewModelScope.launch {
             try {
                 val result = repository.acceptFriendRequest(token, requestId)
-                if (result?.resultCode == 200) {
-                    mainPageState = MainPageState.Authenticated
-                    getSearchProfilesResult()
-                } else if (result?.resultCode == 400) {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message =
-                        result.message
-                    backendResponse.value.buildBackendResponse()
-                } else if (result?.resultCode == 401) {
-                    mainPageState = MainPageState.Unauthenticated
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
-                } else {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message = result?.message
-                    backendResponse.value.buildBackendResponse()
+                when (result?.resultCode) {
+                    200 -> {
+                        val backendResponse = BackendResponse()
+                        processAuthenticatedState(backendResponse)
+                        getSearchProfilesResult()
+                    }
+
+                    401 -> {
+                        val backendResponse = BackendResponse(message = result.message)
+                        processUnauthenticatedState(backendResponse)
+                    }
+
+                    else -> {
+                        val backendResponse = BackendResponse(message = result?.message)
+                        processErrorState(backendResponse)
+                    }
                 }
             } catch (e: Exception) {
-                mainPageState = MainPageState.Error
-                backendResponse.value.message = e.message
-                backendResponse.value.buildBackendResponse()
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
             }
         }
     }
@@ -225,28 +283,26 @@ class MainPageViewModel(
         viewModelScope.launch {
             try {
                 val result = repository.rejectFriendRequest(token, requestId)
-                if (result?.resultCode == 200) {
-                    mainPageState = MainPageState.Authenticated
-                    getSearchProfilesResult()
-                } else if (result?.resultCode == 400) {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message =
-                        result.message
-                    backendResponse.value.buildBackendResponse()
-                } else if (result?.resultCode == 401) {
-                    mainPageState = MainPageState.Unauthenticated
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
-                } else {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message = result?.message
-                    backendResponse.value.buildBackendResponse()
+                when (result?.resultCode) {
+                    200 -> {
+                        val backendResponse = BackendResponse()
+                        processAuthenticatedState(backendResponse)
+                        getSearchProfilesResult()
+                    }
+
+                    401 -> {
+                        val backendResponse = BackendResponse(message = result.message)
+                        processUnauthenticatedState(backendResponse)
+                    }
+
+                    else -> {
+                        val backendResponse = BackendResponse(message = result?.message)
+                        processErrorState(backendResponse)
+                    }
                 }
             } catch (e: Exception) {
-                mainPageState = MainPageState.Error
-                backendResponse.value.message = e.message
-                backendResponse.value.buildBackendResponse()
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
             }
         }
     }
@@ -255,83 +311,28 @@ class MainPageViewModel(
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
-                val result = repository.sendFriendRequest(token, userId)
-                if (result?.resultCode == 200) {
-                    mainPageState = MainPageState.Authenticated
-                    getSearchProfilesResult()
-                } else if (result?.resultCode == 400) {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message =
-                        result.message
-                    backendResponse.value.buildBackendResponse()
-                } else if (result?.resultCode == 401) {
-                    mainPageState = MainPageState.Unauthenticated
-                    backendResponse.value.message =
-                        result.message + "\nYou will be redirected to the login screen."
-                    backendResponse.value.buildBackendResponse()
-                } else {
-                    mainPageState = MainPageState.Error
-                    backendResponse.value.message = result?.message
-                    backendResponse.value.buildBackendResponse()
+                val userID = UserID(userId = userId)
+                val result = repository.sendFriendRequest(token, userID)
+                when (result?.resultCode) {
+                    200 -> {
+                        val backendResponse = BackendResponse()
+                        processAuthenticatedState(backendResponse)
+                        getSearchProfilesResult()
+                    }
+
+                    401 -> {
+                        val backendResponse = BackendResponse(message = result.message)
+                        processUnauthenticatedState(backendResponse)
+                    }
+
+                    else -> {
+                        val backendResponse = BackendResponse(message = result?.message)
+                        processErrorState(backendResponse)
+                    }
                 }
             } catch (e: Exception) {
-                mainPageState = MainPageState.Error
-                backendResponse.value.message = e.message
-                backendResponse.value.buildBackendResponse()
-            }
-        }
-    }
-
-    fun handleLoadingState() {
-        isProgressIndicatorVisible =
-            loadingState == LoadingState.Loading
-    }
-
-    fun logoutProcess(navController: NavController) {
-        isBackendResponseVisible = false
-        clearBackendResponse()
-        sessionManager.clearToken()
-        navController.popBackStack()
-        navController.navigate(Screen.LoginScreen.destination)
-    }
-
-    fun handleMainPageState(navController: NavController) {
-        when (mainPageState) {
-            MainPageState.Error -> {
-                isBackendResponseVisible = true
-            }
-
-            MainPageState.AuthenticationError -> {
-                isBackendResponseVisible = true
-            }
-
-            MainPageState.Unauthenticated -> {
-                isBackendResponseVisible = true
-            }
-
-            MainPageState.Authenticated -> {
-                isBackendResponseVisible = false
-            }
-
-            MainPageState.Idle -> {}
-
-            MainPageState.LoggedOut -> {
-                isBackendResponseVisible = true
-            }
-        }
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application =
-                    (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
-                val repository = application.container.repository
-                val sessionManager = application.sessionManager
-                MainPageViewModel(
-                    repository = repository,
-                    sessionManager = sessionManager,
-                )
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
             }
         }
     }

@@ -90,7 +90,6 @@ dependencies {
     implementation("androidx.security:security-crypto:1.0.0")
 
     implementation("com.mapbox.maps:android:11.7.1")
-    // If you're using compose also add the compose extension
     implementation("com.mapbox.extension:maps-compose:11.7.1")
 
     implementation("androidx.activity:activity-ktx:1.9.3")
@@ -104,7 +103,5 @@ dependencies {
     implementation ("com.mapbox.search:mapbox-search-android-ui:2.5.0")
     implementation ("com.mapbox.search:mapbox-search-android:2.5.0")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
-
-
 
 }

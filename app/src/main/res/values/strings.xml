@@ -28,7 +28,10 @@
     <string name="friend">Friend</string>
     <string name="friendsRequests">Friends requests</string>
     <string name="invitationSent">Invitation sent</string>
+    <string name="deleteFriend">Delete friend</string>
     <string name="addToFriends">Add to friends</string>
+    <string name="acceptRequest">Accept request</string>
+    <string name="rejectRequest">Reject request</string>
     <string name="youHaveBeenInvited">You have been invited to be a friend</string>
 
     <string name="travels">Travels</string>
@@ -41,6 +44,8 @@
     <string name="profile">Profile</string>
 
     <string name="editProfile">Edit profile</string>
+    <string name="editAvatar">Edit avatar</string>
+    <string name="editYourProfile">Edit your profile</string>
     <string name="editUsername">Edit username</string>
     <string name="editEmail">Edit e-mail</string>
 
@@ -81,7 +86,7 @@
     <string name="travelDate">Date of travel</string>
     <string name="editBasicInformation">Edit basic information</string>
     <string name="travelPhoto">Travel photo</string>
-    <string name="changeTravelPhoto">Change travel photo</string>
+    <string name="selectTravelPhoto">Select travel photo</string>
     <string name="travelPlaces">Travel places</string>
     <string name="addNewPlace">Add new place</string>
     <string name="editPlaces">Edit places</string>
@@ -94,6 +99,8 @@
     <string name="updatePasswordInformation">Password update information</string>
 
     <string name="logout">Logout</string>
+    <string name="doYouWantToLogout">Do you want to log out?</string>
+
     <string name="editProfileInformation">Edit profile information</string>
     <string name="editProfileSuccess">You have edited your profile successfully.</string>
 
@@ -101,6 +108,7 @@
     <string name="operationResult">Operation result</string>
 
     <string name="addNewTravel">Add new travel</string>
+    <string name="completeTravelInformation">Complete travel information</string>
     <string name="createNewTravel">Create new travel</string>
     <string name="editTravelInformation">Edit travel information</string>
     <string name="startDate">Travel start date:</string>
@@ -111,6 +119,7 @@
 
 
     <string name="placeName">Place name</string>
+    <string name="completePlaceInformation">Complete the information about the place you want to include in your travel</string>
     <string name="placeOnMap">Place on the map</string>
     <string name="placeDescription">Place description</string>
     <string name="placeCategory">Category of place</string>
@@ -122,6 +131,8 @@
     <string name="saveLocation">Save location</string>
     <string name="search">Search</string>
     <string name="placePhoto">Place photo</string>
-    <string name="changePlacePhoto">Change place photo</string>
+    <string name="noPhotoSelected">No photo selected</string>
+    <string name="selectPlacePhoto">Select place photo</string>
+    <string name="close">Close</string>
 
 </resources>

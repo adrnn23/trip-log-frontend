@@ -7,6 +7,7 @@ import com.example.triplog.authorization.login.data.LogoutResult
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
 import com.example.triplog.main.data.SearchProfilesResult
+import com.example.triplog.main.data.UserID
 import com.example.triplog.profile.data.profile.AuthenticatedUserProfileResult
 import com.example.triplog.profile.data.profile.EditUserProfileRequest
 import com.example.triplog.profile.data.profile.EditUserProfileResult
@@ -18,6 +19,8 @@ import com.example.triplog.profile.data.profile.TravelPreferencesResult
 import com.example.triplog.profile.data.profile.UserProfileResult
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordRequest
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordResult
+import com.example.triplog.travel.data.TravelCategoriesResult
+import com.example.triplog.travel.data.TravelCategory
 import com.squareup.moshi.Moshi
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -42,30 +45,23 @@ interface InterfaceRepository {
     suspend fun getLoginResult(request: LoginRequest): LoginResult?
     suspend fun getRegistrationResult(request: RegistrationRequest): RegistrationResult?
     suspend fun getAuthenticatedUserProfileResult(token: String?): AuthenticatedUserProfileResult?
-    suspend fun updatePassword(
-        token: String?,
-        updatePasswordRequest: UpdatePasswordRequest
-    ): UpdatePasswordResult?
-
+    suspend fun updatePassword(token: String?, updatePasswordRequest: UpdatePasswordRequest): UpdatePasswordResult?
     suspend fun getUserProfileResult(token: String?, id: Int): UserProfileResult?
     suspend fun getTravelPreferences(token: String?): TravelPreferencesResult?
-    suspend fun editUserProfile(
-        token: String?,
-        id: Int,
-        editUserProfileRequest: EditUserProfileRequest
-    ): EditUserProfileResult?
-
+    suspend fun editUserProfile(token: String?, id: Int, editUserProfileRequest: EditUserProfileRequest): EditUserProfileResult?
     suspend fun getLogoutResult(token: String?): LogoutResult?
     suspend fun getFriendsList(token: String?): GetFriendsListResult?
     suspend fun getFriendsRequests(token: String?): GetFriendsRequestsResult?
-    suspend fun sendFriendRequest(token: String?, userId: Int): FriendsOperationResult?
+    suspend fun sendFriendRequest(token: String?, userID: UserID): FriendsOperationResult?
     suspend fun acceptFriendRequest(token: String?, requestId: Int): FriendsOperationResult?
     suspend fun rejectFriendRequest(token: String?, requestId: Int): FriendsOperationResult?
+    suspend fun deleteFriend(token: String?, friendId: Int): FriendsOperationResult?
     suspend fun getSearchProfilesResult(
         token: String?,
         query: String,
         page: Int?
     ): SearchProfilesResult?
+    suspend fun getTravelCategories(token: String?): TravelCategoriesResult?
 }
 
 class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRepository {
@@ -76,7 +72,6 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
                 var loginResult = loginSuccess(response)
                 if (loginResult != null) {
                     if (loginResult.token != null) {
-                        Log.d("Success - Token", loginResult.token.toString())
                         loginResult = LoginResult(response.code(), loginResult.token, null, null)
                         return loginResult
                     }
@@ -327,9 +322,9 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
         }
     }
 
-    override suspend fun sendFriendRequest(token: String?, userId: Int): FriendsOperationResult? {
+    override suspend fun sendFriendRequest(token: String?, userID: UserID): FriendsOperationResult? {
         val response: Response<FriendsOperationResult> =
-            tripLogApiService.sendFriendRequest("Bearer $token", userId)
+            tripLogApiService.sendFriendRequest("Bearer $token", userID)
 
         val friendsOperationResult: FriendsOperationResult?
         if (response.isSuccessful) {
@@ -410,6 +405,46 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
                     .fromJson(errorBody!!)
             searchProfilesResult?.resultCode = response.code()
             return searchProfilesResult
+        }
+    }
+
+    override suspend fun getTravelCategories(token: String?): TravelCategoriesResult {
+        val response: Response<List<TravelCategory>> =
+            tripLogApiService.getTravelCategories("Bearer $token")
+
+        val travelCategoriesResult = TravelCategoriesResult(null, null, null)
+
+        if (response.isSuccessful) {
+            travelCategoriesResult.travelCategories = response.body()
+            travelCategoriesResult.resultCode = response.code()
+            return travelCategoriesResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelCategoriesResult.message = errorBody ?: "Error"
+            travelCategoriesResult.resultCode = response.code()
+            return travelCategoriesResult
+        }
+    }
+
+    override suspend fun deleteFriend(
+        token: String?,
+        friendId: Int
+    ): FriendsOperationResult? {
+        val response: Response<FriendsOperationResult> =
+            tripLogApiService.deleteFriendRequest("Bearer $token", friendId)
+
+        val friendsOperationResult: FriendsOperationResult?
+        if (response.isSuccessful) {
+            friendsOperationResult = response.body()
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            friendsOperationResult =
+                Moshi.Builder().build().adapter(FriendsOperationResult::class.java)
+                    .fromJson(errorBody!!)
+            friendsOperationResult?.resultCode = response.code()
+            return friendsOperationResult
         }
     }
 }

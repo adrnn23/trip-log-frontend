@@ -42,19 +42,24 @@ fun AppNavigation() {
         }
 
         composable(
-            route = "${Screen.ProfileScreen.destination}/{id}",
+            route = "${Screen.ProfileScreen.destination}/{id}/{friendStatus}",
             arguments = listOf(
-                navArgument("id") { type = NavType.IntType })
+                navArgument("id") { type = NavType.IntType },
+                navArgument("friendStatus") {
+                    type = NavType.StringType
+                }
+            )
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt("id")
+            val friendStatus = backStackEntry.arguments?.getString("friendStatus")
             if (id != null) {
-                ProfileScreen(navController = navController, id = id)
+                ProfileScreen(navController = navController, id = id, friendStatus = friendStatus)
             }
         }
         composable(
             route = Screen.EditProfileScreen.destination
         ) {
-            EditProfileScreen(navController = navController,)
+            EditProfileScreen(navController = navController)
         }
         composable(route = Screen.MainPageScreen.destination) {
             MainPageScreen(navController = navController)

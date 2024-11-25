@@ -7,12 +7,15 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material.icons.filled.TravelExplore
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
@@ -45,14 +49,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
@@ -60,11 +65,7 @@ import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.LinearIndicator
 import com.example.triplog.profile.components.ChangeButton
-import com.example.triplog.profile.components.TitleComponent
-import com.example.triplog.travel.presentation.CreateTravelSection
 import com.example.triplog.travel.presentation.CreateTravelViewModel
-import com.mapbox.maps.extension.style.expressions.dsl.generated.mod
-import kotlinx.coroutines.coroutineScope
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -98,7 +99,7 @@ fun TravelInformationComponent(
 ) {
     Column(
         horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -106,45 +107,43 @@ fun TravelInformationComponent(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10.dp)
             )
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        TitleComponent(
-            R.string.basicInformation,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.basicInformation),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        TitleComponent(
-            R.string.travelName,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-        )
-        Text(text = viewModel.travel.name ?: "", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
 
-        TitleComponent(
-            R.string.travelDescription,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.travelName),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
-        Text(text = viewModel.travel.description ?: "", style = MaterialTheme.typography.bodyMedium)
-        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = viewModel.travel.name ?: "-----", style = MaterialTheme.typography.bodyMedium)
 
-        TitleComponent(
-            R.string.travelDate,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
+        Text(
+            stringResource(R.string.travelDescription),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = viewModel.travel.description ?: "-----",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Text(
+            stringResource(R.string.travelDate),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
         )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Text(
-                text = viewModel.travel.startDate ?: "",
+                text = viewModel.travel.startDate ?: "Start date",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.width(4.dp))
@@ -152,11 +151,10 @@ fun TravelInformationComponent(
             Spacer(Modifier.width(4.dp))
 
             Text(
-                text = viewModel.travel.endDate ?: "",
+                text = viewModel.travel.endDate ?: "End date",
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
         ButtonComponent(R.string.editBasicInformation, modifier = Modifier, onClick = { onClick() })
     }
 }
@@ -170,10 +168,11 @@ fun TravelPhotoComponent(
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             viewModel.travelImage = uri
         }
+    val showPhoto = remember { mutableStateOf(false) }
 
     Column(
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -181,38 +180,89 @@ fun TravelPhotoComponent(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10.dp)
             )
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        TitleComponent(
-            R.string.travelPhoto,
-            fontSize = 16.sp,
+        Text(
+            text = stringResource(R.string.travelPhoto),
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier
+            modifier = Modifier.align(Alignment.Start)
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Box {
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { showPhoto.value = true }
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
             if (viewModel.travelImage != null) {
                 val painter = rememberAsyncImagePainter(
-                    ImageRequest
-                        .Builder(LocalContext.current)
-                        .data(data =  viewModel.travelImage)
+                    ImageRequest.Builder(LocalContext.current)
+                        .data(data = viewModel.travelImage)
                         .build()
                 )
                 Image(
                     painter = painter,
                     contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(140.dp)
+                        .fillMaxSize()
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.noPhotoSelected),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+
         ButtonComponent(
-            R.string.changeTravelPhoto,
-            modifier = Modifier.width(200.dp),
+            R.string.selectTravelPhoto,
+            modifier = Modifier.fillMaxWidth(0.7f),
             onClick = {
                 launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
-            })
+            }
+        )
+        if (showPhoto.value) {
+            AlertDialog(
+                onDismissRequest = { showPhoto.value = false },
+                title = {
+                    Text(text = stringResource(R.string.travelPhoto))
+                },
+                text = {
+                    if (viewModel.travelImage != null) {
+                        val painter = rememberAsyncImagePainter(
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(data = viewModel.travelImage)
+                                .build()
+                        )
+                        Image(
+                            painter = painter,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .padding(16.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Text(text = stringResource(R.string.noPhotoSelected))
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { showPhoto.value = false }
+                    ) {
+                        Text(text = stringResource(R.string.close))
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -233,8 +283,8 @@ fun TravelPlacesComponent(
     }
 
     Column(
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .border(
@@ -242,20 +292,20 @@ fun TravelPlacesComponent(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10.dp)
             )
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        TitleComponent(
-            R.string.travelPlaces,
-            fontSize = 16.sp,
+        Text(
+            stringResource(R.string.travelPlaces),
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier
+            modifier = Modifier.align(Alignment.Start)
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
 
         Row {
             ButtonComponent(
                 R.string.addNewPlace,
-                modifier = Modifier.width(200.dp),
+                modifier = Modifier.width(160.dp),
                 onClick = { onClick() }
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -268,8 +318,6 @@ fun TravelPlacesComponent(
                     }
                 })
         }
-        Spacer(modifier = Modifier.height(8.dp))
-
         if (viewModel.isDeleting) {
             LinearIndicator()
         } else if (viewModel.isPlacesVisible) {
@@ -309,6 +357,7 @@ fun EditTravelNameComponent(viewModel: CreateTravelViewModel) {
 
 @Composable
 fun EditTravelDescriptionComponent(viewModel: CreateTravelViewModel) {
+    var enabled by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
@@ -318,20 +367,20 @@ fun EditTravelDescriptionComponent(viewModel: CreateTravelViewModel) {
     ) {
         TravelPlaceDescriptionInput(
             R.string.travelDescription,
-            value = viewModel.travel.description ?: "",
             imageVector = Icons.Default.Description,
-            enabled = false,
+            viewModel.travelDescriptionTemp,
+            enabled = enabled,
+            characterLimit = 512,
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(6.dp),
-            onValueChanged = { }
+            onValueChanged = { viewModel.travelDescriptionTemp = it },
         )
         ChangeButton(
             modifier = Modifier,
             icon = Icons.Default.Edit,
             changeAction = {
-                viewModel.travelDescriptionTemp = viewModel.travel.description ?: ""
-                viewModel.section = CreateTravelSection.EditTravelDescription
+                enabled = !enabled
             })
     }
 }
@@ -343,6 +392,7 @@ fun TravelPlaceDescriptionInput(
     value: String,
     enabled: Boolean,
     onValueChanged: (String) -> Unit,
+    characterLimit: Int,
     modifier: Modifier = Modifier,
 ) {
     val travelDescriptionIcon = @Composable {
@@ -352,26 +402,38 @@ fun TravelPlaceDescriptionInput(
             tint = MaterialTheme.colorScheme.primary
         )
     }
-    OutlinedTextField(
-        label = { Text(stringResource(label)) },
-        value = value,
-        onValueChange = onValueChanged,
-        leadingIcon = travelDescriptionIcon,
-        singleLine = true,
-        enabled = enabled,
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Next
-        ),
-        modifier = modifier
-    )
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            label = { Text(stringResource(label)) },
+            value = value,
+            onValueChange = onValueChanged,
+            leadingIcon = travelDescriptionIcon,
+            maxLines = 6,
+            textStyle = TextStyle(fontSize = 12.sp),
+            enabled = enabled,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Next
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = if (characterLimit - value.length >= 0) {
+                "${characterLimit - value.length} characters remaining"
+            } else "Too many characters!",
+            style = TextStyle(fontSize = 10.sp),
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .align(Alignment.End)
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTravelDateComponent(viewModel: CreateTravelViewModel) {
 
-    var startDatePickerDialogVisible = remember { mutableStateOf(false) }
-    var endDatePickerDialogVisible = remember { mutableStateOf(false) }
+    val startDatePickerDialogVisible = remember { mutableStateOf(false) }
+    val endDatePickerDialogVisible = remember { mutableStateOf(false) }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
 
