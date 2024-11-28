@@ -75,8 +75,8 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.profile.components.ChangeButton
-import com.example.triplog.travel.presentation.CreateTravelViewModel
-import com.example.triplog.travel.presentation.PlaceData
+import com.example.triplog.travel.presentation.create.CreateTravelViewModel
+import com.example.triplog.travel.presentation.create.PlaceData
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.plugin.animation.flyTo

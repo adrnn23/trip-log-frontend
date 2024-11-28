@@ -12,7 +12,7 @@ import com.example.triplog.authorization.registration.presentation.RegistrationS
 import com.example.triplog.main.presentation.MainPageScreen
 import com.example.triplog.profile.presentation.EditProfileScreen
 import com.example.triplog.profile.presentation.ProfileScreen
-import com.example.triplog.travel.presentation.CreateTravelScreen
+import com.example.triplog.travel.presentation.create.CreateTravelScreen
 
 sealed class Screen(val destination: String) {
     data object LoginScreen : Screen("LoginScreen")

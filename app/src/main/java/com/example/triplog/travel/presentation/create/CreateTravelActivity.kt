@@ -1,4 +1,4 @@
-package com.example.triplog.travel.presentation
+package com.example.triplog.travel.presentation.create
 
 import EditPlaceLocalizationSection
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,10 +14,10 @@ import com.example.triplog.main.navigation.ButtonBottomBar
 import com.example.triplog.main.navigation.TopApplicationBar
 import com.example.triplog.profile.presentation.FullScreenLoadingIndicator
 import com.example.triplog.travel.components.LocalizationSearchBar
-import com.example.triplog.travel.presentation.sections.AddPlaceMainSection
-import com.example.triplog.travel.presentation.sections.CreateTravelMainSection
-import com.example.triplog.travel.presentation.sections.EditPlaceInformationSection
-import com.example.triplog.travel.presentation.sections.EditTravelInformationSection
+import com.example.triplog.travel.presentation.create.sections.AddPlaceMainSection
+import com.example.triplog.travel.presentation.create.sections.CreateTravelMainSection
+import com.example.triplog.travel.presentation.create.sections.EditPlaceInformationSection
+import com.example.triplog.travel.presentation.create.sections.EditTravelInformationSection
 
 @Composable
 fun CreateTravelScreen(

@@ -1,4 +1,4 @@
-package com.example.triplog.travel.presentation.sections
+package com.example.triplog.travel.presentation.create.sections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,14 +19,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.triplog.R
-import com.example.triplog.travel.components.PlaceInformationComponent
-import com.example.triplog.travel.components.PlaceLocalizationComponent
-import com.example.triplog.travel.components.PlacePhotoComponent
-import com.example.triplog.travel.presentation.CreateTravelSection
-import com.example.triplog.travel.presentation.CreateTravelViewModel
+import com.example.triplog.travel.components.TravelInformationComponent
+import com.example.triplog.travel.components.TravelPhotoComponent
+import com.example.triplog.travel.components.TravelPlacesComponent
+import com.example.triplog.travel.presentation.create.CreateTravelSection
+import com.example.triplog.travel.presentation.create.CreateTravelViewModel
 
 @Composable
-fun AddPlaceMainSection(innerpadding: PaddingValues, viewModel: CreateTravelViewModel) {
+fun CreateTravelMainSection(innerpadding: PaddingValues, viewModel: CreateTravelViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -37,42 +37,38 @@ fun AddPlaceMainSection(innerpadding: PaddingValues, viewModel: CreateTravelView
     ) {
         item {
             Text(
-                stringResource(R.string.addNewPlace),
+                stringResource(R.string.addNewTravel),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                stringResource(R.string.completePlaceInformation),
-                style = MaterialTheme.typography.titleMedium,
+                stringResource(R.string.completeTravelInformation),
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
             Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
         }
         item {
-            PlaceInformationComponent(
-                viewModel,
-                onClick = {
-                    viewModel.section = CreateTravelSection.EditPlaceInformation
-                    viewModel.placeNameTemp = viewModel.place.name ?: ""
-                    viewModel.placeDescriptionTemp = viewModel.place.description ?: ""
-                })
+            TravelInformationComponent(viewModel, onClick = {
+                viewModel.section =
+                    CreateTravelSection.EditTravelInformation
+                viewModel.travelNameTemp = viewModel.travel.name ?: ""
+                viewModel.travelDescriptionTemp = viewModel.travel.description ?: ""
+            })
             Spacer(modifier = Modifier.height(10.dp))
         }
 
         item {
-            PlaceLocalizationComponent(
-                viewModel,
-                onClick = {
-                    viewModel.section = CreateTravelSection.EditPlaceLocalization
-                    viewModel.pointTemp = viewModel.place.point
-                })
+            TravelPhotoComponent(viewModel)
             Spacer(modifier = Modifier.height(10.dp))
         }
 
         item {
-            PlacePhotoComponent(viewModel)
+            TravelPlacesComponent(
+                viewModel,
+                onClick = { viewModel.section = CreateTravelSection.AddPlaceMain })
             Spacer(modifier = Modifier.height(10.dp))
         }
     }

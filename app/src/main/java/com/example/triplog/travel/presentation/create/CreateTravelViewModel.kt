@@ -1,4 +1,4 @@
-package com.example.triplog.travel.presentation
+package com.example.triplog.travel.presentation.create
 
 import android.annotation.SuppressLint
 import android.net.Uri

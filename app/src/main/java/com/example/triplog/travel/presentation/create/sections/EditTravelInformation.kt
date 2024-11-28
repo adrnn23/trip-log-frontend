@@ -1,4 +1,4 @@
-package com.example.triplog.travel.presentation.sections
+package com.example.triplog.travel.presentation.create.sections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,7 +18,7 @@ import com.example.triplog.profile.components.TitleComponent
 import com.example.triplog.travel.components.EditTravelDateComponent
 import com.example.triplog.travel.components.EditTravelDescriptionComponent
 import com.example.triplog.travel.components.EditTravelNameComponent
-import com.example.triplog.travel.presentation.CreateTravelViewModel
+import com.example.triplog.travel.presentation.create.CreateTravelViewModel
 
 @Composable
 fun EditTravelInformationSection(

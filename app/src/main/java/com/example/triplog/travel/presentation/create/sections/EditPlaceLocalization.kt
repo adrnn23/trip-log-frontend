@@ -13,7 +13,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.example.triplog.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.triplog.travel.presentation.CreateTravelViewModel
+import com.example.triplog.travel.presentation.create.CreateTravelViewModel
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
 import com.mapbox.maps.plugin.animation.flyTo

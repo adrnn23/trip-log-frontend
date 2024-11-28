@@ -65,7 +65,7 @@ import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.LinearIndicator
 import com.example.triplog.profile.components.ChangeButton
-import com.example.triplog.travel.presentation.CreateTravelViewModel
+import com.example.triplog.travel.presentation.create.CreateTravelViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
