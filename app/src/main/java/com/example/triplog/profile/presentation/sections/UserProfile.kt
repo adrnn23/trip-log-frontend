@@ -48,10 +48,13 @@ fun ProfileSection(
                 viewModel,
                 navController
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        item { AboutMeComponent(viewModel.userProfile.bio) }
+        item {
+            AboutMeComponent(viewModel.userProfile.bio)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         item {
             LinksComponent(
@@ -59,12 +62,12 @@ fun ProfileSection(
                     .fillMaxWidth()
                     .padding(4.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         item {
-            TravelNavigation()
-            Spacer(modifier = Modifier.height(4.dp))
+            TravelNavigation(navController)
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }

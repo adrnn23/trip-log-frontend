@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -66,7 +65,7 @@ fun SearchBar(viewModel: MainPageViewModel) {
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "Search Icon",
+                    contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
             },
@@ -78,7 +77,7 @@ fun SearchBar(viewModel: MainPageViewModel) {
         )
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedButton(
-            onClick = { viewModel.getSearchProfilesResult() },
+            onClick = { viewModel.getSearchProfilesResult(viewModel.currentPage) },
             modifier = Modifier.height(42.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -97,25 +96,20 @@ fun SearchBar(viewModel: MainPageViewModel) {
 fun SearchResultsSection(viewModel: MainPageViewModel, navController: NavController) {
     LazyColumn {
         items(viewModel.searchedProfilesList ?: emptyList()) { profile ->
-            profile?.let {
-                UserItem(
-                    profile,
-                    onClickReject = {
-                        profile.receivedRequestId?.let { viewModel.rejectFriendRequest(it) }
-                    },
-                    onClickAccept = {
-                        profile.receivedRequestId?.let { viewModel.acceptFriendRequest(it) }
-                    },
-                    onClickSendInvitation = {
-                        profile.id?.let { viewModel.sendFriendRequest(it) }
-                    },
-                    onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${profile.id}/${profile.friendStatus}") }
-                )
-            }
-            Divider(
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                thickness = 1.dp,
-                modifier = Modifier.padding(vertical = 8.dp)
+            UserItem(
+                profile,
+                onClickReject = {
+                    profile.receivedRequestId?.let { viewModel.rejectFriendRequest(it) }
+                },
+                onClickAccept = {
+                    profile.receivedRequestId?.let { viewModel.acceptFriendRequest(it) }
+                },
+                onClickSendInvitation = {
+                    profile.id?.let { viewModel.sendFriendRequest(it) }
+                },
+                onClick = {
+                    navController.navigate("${Screen.ProfileScreen.destination}/${profile.id}")
+                }
             )
         }
     }
@@ -170,21 +164,15 @@ fun UserItem(
                         modifier = Modifier.clickable { onClick() })
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                if (data.friendStatus == 1) {
-                    Text(
-                        text = stringResource(R.string.friend), fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                data.friendStatus?.let {
+                    FriendStatusAction(
+                        it,
+                        onClickReject = onClickReject,
+                        onClickSendInvitation = onClickSendInvitation,
+                        onClickAccept = onClickAccept
                     )
-                } else {
-                    data.friendStatus?.let {
-                        FriendStatusAction(
-                            it,
-                            onClickReject = onClickReject,
-                            onClickSendInvitation = onClickSendInvitation,
-                            onClickAccept = onClickAccept
-                        )
-                    }
                 }
+
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
@@ -213,6 +201,13 @@ fun FriendStatusAction(
         0 -> SendInvitationCard { onClickSendInvitation() }
         3 -> InvitationActionButtons(onClickAccept, onClickReject)
         2 -> InvitationSentCard()
+        1 -> {
+            Text(
+                text = stringResource(R.string.friend), fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
+
         else -> {}
     }
 }

@@ -88,8 +88,15 @@
     <string name="travelPhoto">Travel photo</string>
     <string name="selectTravelPhoto">Select travel photo</string>
     <string name="travelPlaces">Travel places</string>
-    <string name="addNewPlace">Add new place</string>
+    <string name="markAsFavorite">Mark travel as favorite</string>
     <string name="editPlaces">Edit places</string>
+    <string name="newPlace">New place</string>
+    <string name="addNewPlace">Add new place</string>
+    <string name="editPlace">Edit place</string>
+    <string name="editPlaceAndSave">Edit place and save</string>
+    <string name="saveLocalization">Save localization</string>
+    <string name="addRequiredPlace">Add required places</string>
+    <string name="minOnePlace">You have to add at least one place to create travel</string>
 
     <string name="updatePassword">Update password</string>
     <string name="updateYourPassword">Update your password</string>
@@ -108,8 +115,10 @@
     <string name="operationResult">Operation result</string>
 
     <string name="addNewTravel">Add new travel</string>
-    <string name="completeTravelInformation">Complete travel information</string>
+    <string name="completeTravelInformation">Complete the information about your travel</string>
     <string name="createNewTravel">Create new travel</string>
+    <string name="addNewTravelQuestion">Do you want to add new travel?</string>
+    <string name="editTravelQuestion">Do you want to update your travel?</string>
     <string name="editTravelInformation">Edit travel information</string>
     <string name="startDate">Travel start date:</string>
     <string name="endDate">Travel end date:</string>
@@ -119,12 +128,12 @@
 
 
     <string name="placeName">Place name</string>
-    <string name="completePlaceInformation">Complete the information about the place you want to include in your travel</string>
+    <string name="completePlaceInformation">Complete the information about the place</string>
     <string name="placeOnMap">Place on the map</string>
     <string name="placeDescription">Place description</string>
     <string name="placeCategory">Category of place</string>
     <string name="editPlaceInformation">Edit place information</string>
-    <string name="editPlaceLocalization">Edit place localization</string>
+    <string name="editLocalization">Edit place localization</string>
     <string name="editPlaceDescription">Edit place description</string>
     <string name="savePlaceDescription">Save place description</string>
     <string name="enterLocation">Enter location</string>
@@ -132,7 +141,18 @@
     <string name="search">Search</string>
     <string name="placePhoto">Place photo</string>
     <string name="noPhotoSelected">No photo selected</string>
+    <string name="noPhotoAvailable">Photo is not available</string>
     <string name="selectPlacePhoto">Select place photo</string>
     <string name="close">Close</string>
+    <string name="delete">Delete</string>
+    <string name="editTravel">Edit travel</string>
+    <string name="edit">Edit</string>
+    <string name="editYourTravel">Edit your travel</string>
+
+    <string name="travelGallery">Travel gallery</string>
+    <string name="travelOverview">Travel overview</string>
+    <string name="notSet">Not set</string>
+    <string name="deleteTravel">Do you want to delete your travel?</string>
+    <string name="viewOnMap">See travel on map</string>
 
 </resources>

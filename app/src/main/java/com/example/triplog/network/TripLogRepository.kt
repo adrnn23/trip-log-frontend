@@ -1,6 +1,5 @@
 package com.example.triplog.network
 
-import android.util.Log
 import com.example.triplog.authorization.login.data.LoginRequest
 import com.example.triplog.authorization.login.data.LoginResult
 import com.example.triplog.authorization.login.data.LogoutResult

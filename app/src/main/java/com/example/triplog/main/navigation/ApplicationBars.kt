@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.triplog.R
 import com.example.triplog.main.data.BottomNavItem
+import com.example.triplog.main.presentation.MainPageViewModel
 import com.example.triplog.profile.components.EditButtonComponent
 
 @Composable
@@ -161,6 +164,40 @@ fun ButtonBottomBar(
                 modifier = Modifier.fillMaxWidth(0.9f)
             ) {
                 onClick()
+            }
+        }
+    }
+    )
+}
+
+@Composable
+fun SearchBottomBar(
+    viewModel: MainPageViewModel
+) {
+    BottomAppBar(actions = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Button(
+                onClick = { viewModel.loadPreviousPage() },
+                enabled = viewModel.currentPage > 1
+            ) {
+                Text("Previous")
+            }
+
+            Text(
+                text = "Page ${viewModel.currentPage} of ${viewModel.totalPages}",
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
+
+            Button(
+                onClick = { viewModel.loadNextPage() },
+                enabled = viewModel.currentPage < viewModel.totalPages
+            ) {
+                Text("Next")
             }
         }
     }

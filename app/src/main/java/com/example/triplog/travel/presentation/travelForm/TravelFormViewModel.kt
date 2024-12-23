@@ -1,4 +1,4 @@
-package com.example.triplog.travel.presentation.create
+package com.example.triplog.travel.presentation.travelForm
 
 import android.annotation.SuppressLint
 import android.net.Uri
@@ -17,19 +17,21 @@ import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
-import com.example.triplog.network.MapboxGeocodingClient
+import com.example.triplog.network.MapboxClient
 import com.example.triplog.travel.data.PlaceCategoryData
+import com.example.triplog.travel.data.PlaceData
+import com.example.triplog.travel.data.TravelData
 import com.mapbox.geojson.Point
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-sealed class CreateTravelSection {
-    data object Main : CreateTravelSection()
-    data object EditTravelInformation : CreateTravelSection()
-    data object AddPlaceMain : CreateTravelSection()
-    data object EditTravelPlaces : CreateTravelSection()
-    data object EditPlaceInformation : CreateTravelSection()
-    data object EditPlaceLocalization : CreateTravelSection()
+sealed class TravelFormSection {
+    data object Main : TravelFormSection()
+    data object PlaceForm : TravelFormSection()
+    data object EditTravelInformation : TravelFormSection()
+    data object EditPlaceInformation : TravelFormSection()
+    data object EditTravelLocalization : TravelFormSection()
+    data object EditPlaceLocalization : TravelFormSection()
 }
 
 sealed class CreateTravelState {
@@ -39,29 +41,11 @@ sealed class CreateTravelState {
     data object Error : CreateTravelState()
 }
 
-
-data class PlaceData(
-    var name: String? = null,
-    var description: String? = null,
-    var category: String? = null,
-    var image: Uri? = null,
-    var point: Point? = null
-)
-
-data class TravelData(
-    var name: String? = null,
-    var description: String? = null,
-    var startDate: String? = null,
-    var endDate: String? = null,
-    var tags: List<String?> = emptyList(),
-    var places: List<PlaceData?> = emptyList()
-)
-
 @SuppressLint("MutableCollectionMutableState")
-class CreateTravelViewModel(
+class TravelFormViewModel(
     private val repository: InterfaceRepository,
     val sessionManager: SessionManager,
-    private val mapboxGeocodingClient: MapboxGeocodingClient,
+    private val mapboxClient: MapboxClient,
     val responseHandler: ResponseHandler
 ) : ViewModel() {
 
@@ -71,31 +55,52 @@ class CreateTravelViewModel(
     var travelNameTemp by mutableStateOf("")
     var travelDescriptionTemp by mutableStateOf("")
     var travelImage by mutableStateOf<Uri?>(null)
+    var travelPointTemp by mutableStateOf<Point?>(null)
     var travelPlaces: MutableList<PlaceData?> = emptyList<PlaceData?>().toMutableList()
 
     var place by mutableStateOf(PlaceData())
     var placeNameTemp by mutableStateOf("")
     var placeDescriptionTemp by mutableStateOf("")
-    var pointTemp by mutableStateOf<Point?>(null)
+    var placePointTemp by mutableStateOf<Point?>(null)
     var placeImage by mutableStateOf<Uri?>(null)
 
     var placeCategoriesList by mutableStateOf(mutableListOf<PlaceCategoryData?>())
 
-    var section by mutableStateOf<CreateTravelSection>(CreateTravelSection.Main)
-    var isCreateNewTravelDialogVisible by mutableStateOf(false)
+    var section by mutableStateOf<TravelFormSection>(TravelFormSection.Main)
+    var isCreateEditTravelDialogVisible by mutableStateOf(false)
     var isBackendResponseVisible by mutableStateOf(false)
     var isProgressIndicatorVisible by mutableStateOf(false)
     var isPlacesVisible by mutableStateOf(false)
+    var editedPlaceIndex by mutableStateOf<Int?>(null)
 
+    var editScreen by mutableStateOf(false)
+
+    fun setTravelToEdit(travelToEdit: TravelData) {
+        travel.name = travelToEdit.name
+        travel.description = travelToEdit.description
+        travel.startDate = travelToEdit.startDate
+        travel.endDate = travelToEdit.endDate
+        travel.point = travelToEdit.point
+        travel.favourite = travelToEdit.favourite
+        travelImage = travelToEdit.image
+        travelPlaces = travelToEdit.places.toMutableList()
+    }
+
+    fun prepareTempTravelDataToSharedVM(): TravelData {
+        val travel = travel
+        travel.places = travelPlaces
+        travel.image = travelImage
+        return travel
+    }
 
     var isDeleting by mutableStateOf(false)
     fun removePlaceWithLoading(place: PlaceData?) {
         isDeleting = true
         travelPlaces.remove(place)
         viewModelScope.launch {
-            delay(500)
+            delay(200)
             isDeleting = false
-            if(travelPlaces.size>0){
+            if (travelPlaces.size > 0) {
                 isPlacesVisible = true
             }
         }
@@ -108,12 +113,12 @@ class CreateTravelViewModel(
                     (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as TripLogApplication)
                 val repository = application.container.repository
                 val sessionManager = application.sessionManager
-                val mapboxGeocodingClient = application.mapboxGeocodingClient
+                val mapboxGeocodingClient = application.mapboxClient
                 val responseHandler = ResponseHandler()
-                CreateTravelViewModel(
+                TravelFormViewModel(
                     repository = repository,
                     sessionManager = sessionManager,
-                    mapboxGeocodingClient = mapboxGeocodingClient,
+                    mapboxClient = mapboxGeocodingClient,
                     responseHandler = responseHandler
                 )
             }
@@ -192,7 +197,7 @@ class CreateTravelViewModel(
             try {
                 val result = repository.getTravelCategories(token)
                 if (result?.resultCode == 200 && result.travelCategories != null) {
-                    result.travelCategories?.forEach { item->
+                    result.travelCategories?.forEach { item ->
                         val placeCategoryData = PlaceCategoryData(item?.name, false)
                         placeCategoriesList.add(placeCategoryData)
                     }
@@ -212,17 +217,29 @@ class CreateTravelViewModel(
         }
     }
 
-    fun searchPlace(place: String, accessToken: String){
+    fun updateFavoriteStatus(isFavorite: Boolean) {
+        travel = travel.copy(favourite = isFavorite)
+    }
+
+    fun searchPlace(place: String, accessToken: String, label: String) {
         viewModelScope.launch {
-            if(place!=""){
-                val response = mapboxGeocodingClient.mapboxGeocodingService.searchPlace(
+            if (place != "") {
+                val response = mapboxClient.mapboxService.searchPlace(
                     place = place,
                     accessToken = accessToken
                 )
                 val responseBody = response.body()
                 if (responseBody?.features != null) {
                     val coordinates = responseBody.features.first().geometry.coordinates
-                    pointTemp = Point.fromLngLat(coordinates[0], coordinates[1])
+                    when (label) {
+                        "Travel" -> {
+                            travelPointTemp = Point.fromLngLat(coordinates[0], coordinates[1])
+                        }
+
+                        "Place" -> {
+                            placePointTemp = Point.fromLngLat(coordinates[0], coordinates[1])
+                        }
+                    }
                 }
             }
         }

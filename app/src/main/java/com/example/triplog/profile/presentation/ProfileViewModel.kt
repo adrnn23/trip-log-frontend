@@ -18,7 +18,6 @@ import com.example.triplog.main.LoadingState
 import com.example.triplog.main.ResponseHandler
 import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
-import com.example.triplog.main.data.UserID
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
@@ -67,7 +66,6 @@ class ProfileViewModel(
     var profileSection by mutableStateOf<UserProfileSection>(UserProfileSection.Main)
     var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
     var userProfile by mutableStateOf(UserProfileData())
-    var friendStatus by mutableStateOf<String?>(null)
 
     var friendsList by mutableStateOf(mutableListOf<GetFriendsListResult.Data?>())
     var friendsRequests by mutableStateOf(mutableListOf<GetFriendsRequestsResult.Data?>())
@@ -81,16 +79,11 @@ class ProfileViewModel(
     var isBackendResponseVisible by mutableStateOf(false)
     var isOwnProfile by mutableStateOf(false)
 
-    fun initParams(id: Int?, iFriendStatus: String?) {
-        if (id == sessionManager.getUserId()) {
-            isOwnProfile = true
-            userProfile.id = id
-        } else {
-            isOwnProfile = false
-            userProfile.id = id
-            friendStatus = iFriendStatus
-        }
+    fun initParams(id: Int?) {
         getUserProfileResult()
+        profileSection = UserProfileSection.Main
+        userProfile.id = id
+        isOwnProfile = id == sessionManager.getUserId()
     }
 
     companion object {
@@ -106,7 +99,7 @@ class ProfileViewModel(
                     repository = repository,
                     token = sessionManager.getToken(),
                     sessionManager = sessionManager,
-                    responseHandler = responseHandler
+                    responseHandler = responseHandler,
                 )
             }
         }
@@ -231,36 +224,7 @@ class ProfileViewModel(
         }
     }
 
-    fun sendFriendRequest(userId: Int) {
-        val token = sessionManager.getToken()
-        val userID = UserID(userId = userId)
-        viewModelScope.launch {
-            try {
-                val result = repository.sendFriendRequest(token, userID)
-                when (result?.resultCode) {
-                    200 -> {
-                        val backendResponse = BackendResponse()
-                        processAuthenticatedState(backendResponse)
-                    }
-
-                    401 -> {
-                        val backendResponse = BackendResponse(message = result.message)
-                        processUnauthenticatedState(backendResponse)
-                    }
-
-                    else -> {
-                        val backendResponse = BackendResponse(message = result?.message)
-                        processErrorState(backendResponse)
-                    }
-                }
-            } catch (e: Exception) {
-                val backendResponse = BackendResponse(message = e.message)
-                processErrorState(backendResponse)
-            }
-        }
-    }
-
-    private fun getUserProfileResult() {
+    fun getUserProfileResult() {
         loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
@@ -281,6 +245,7 @@ class ProfileViewModel(
                         linksInit(result.facebookLink, result.instagramLink, result.xLink)
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
+                        isOwnProfile = userProfile.id == sessionManager.getUserId()
                     } else if (result.resultCode == 401) {
                         val backendResponse = BackendResponse(message = result.message)
                         processUnauthenticatedState(backendResponse)
@@ -353,7 +318,17 @@ class ProfileViewModel(
         }
     }
 
+    fun refreshFriendsRequests() {
+        getFriendsRequests()
+    }
+
+    fun refreshFriendsList() {
+        getFriendsListResult()
+    }
+
+
     fun acceptFriendRequest(requestId: Int) {
+        loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -362,7 +337,6 @@ class ProfileViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        getFriendsRequests()
                     }
 
                     401 -> {
@@ -379,10 +353,12 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processErrorState(backendResponse)
             }
+            loadingState = LoadingState.Loaded
         }
     }
 
     fun rejectFriendRequest(requestId: Int) {
+        loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -391,7 +367,6 @@ class ProfileViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        getFriendsRequests()
                     }
 
                     401 -> {
@@ -408,10 +383,12 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processUnauthenticatedState(backendResponse)
             }
+            loadingState = LoadingState.Loaded
         }
     }
 
     fun deleteFriend(friendId: Int) {
+        loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -437,6 +414,7 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processUnauthenticatedState(backendResponse)
             }
+            loadingState = LoadingState.Loaded
         }
     }
 }

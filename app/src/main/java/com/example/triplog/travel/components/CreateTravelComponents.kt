@@ -4,8 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +19,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -28,13 +29,17 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.TravelExplore
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,12 +64,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.LinearIndicator
 import com.example.triplog.profile.components.ChangeButton
-import com.example.triplog.travel.presentation.create.CreateTravelViewModel
+import com.example.triplog.travel.data.PlaceData
+import com.example.triplog.travel.presentation.SharedTravelViewModel
+import com.example.triplog.travel.presentation.travelForm.TravelFormSection
+import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -73,6 +81,7 @@ import java.util.Locale
 fun ButtonComponent(
     @StringRes text: Int,
     modifier: Modifier,
+    enabled: Boolean,
     onClick: () -> Unit
 ) {
     OutlinedButton(
@@ -80,6 +89,7 @@ fun ButtonComponent(
         onClick = {
             onClick()
         },
+        enabled = enabled,
         modifier = modifier
     ) {
         Text(
@@ -95,7 +105,7 @@ fun ButtonComponent(
 
 @Composable
 fun TravelInformationComponent(
-    viewModel: CreateTravelViewModel, onClick: () -> Unit
+    viewModel: TravelFormViewModel, onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.Start,
@@ -121,7 +131,10 @@ fun TravelInformationComponent(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        Text(text = viewModel.travel.name ?: "-----", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = viewModel.travel.name ?: stringResource(R.string.notSet),
+            style = MaterialTheme.typography.bodyMedium
+        )
 
         Text(
             stringResource(R.string.travelDescription),
@@ -129,7 +142,7 @@ fun TravelInformationComponent(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = viewModel.travel.description ?: "-----",
+            text = viewModel.travel.description ?: stringResource(R.string.notSet),
             style = MaterialTheme.typography.bodyMedium
         )
 
@@ -155,14 +168,18 @@ fun TravelInformationComponent(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        ButtonComponent(R.string.editBasicInformation, modifier = Modifier, onClick = { onClick() })
+        ButtonComponent(
+            R.string.editBasicInformation,
+            modifier = Modifier,
+            enabled = true,
+            onClick = { onClick() })
     }
 }
 
 
 @Composable
 fun TravelPhotoComponent(
-    viewModel: CreateTravelViewModel
+    viewModel: TravelFormViewModel
 ) {
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -219,15 +236,30 @@ fun TravelPhotoComponent(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
+            IconButton(
+                onClick = {
+                    launcher.launch(
+                        PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 6.dp, bottom = 6.dp)
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.editLocalization),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
         }
 
-        ButtonComponent(
-            R.string.selectTravelPhoto,
-            modifier = Modifier.fillMaxWidth(0.7f),
-            onClick = {
-                launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
-            }
-        )
         if (showPhoto.value) {
             AlertDialog(
                 onDismissRequest = { showPhoto.value = false },
@@ -266,22 +298,11 @@ fun TravelPhotoComponent(
     }
 }
 
-
 @Composable
-fun TravelPlacesComponent(
-    viewModel: CreateTravelViewModel,
-    onClick: () -> Unit
+fun AddPlacesComponent(
+    viewModel: TravelFormViewModel,
+    onAddPlaceClick: () -> Unit
 ) {
-    val height = remember { Animatable(0f) }
-
-    LaunchedEffect(viewModel.isPlacesVisible) {
-        if (viewModel.isPlacesVisible) {
-            height.animateTo(targetValue = 512f, animationSpec = tween(durationMillis = 400))
-        } else {
-            height.animateTo(targetValue = 0f, animationSpec = tween(durationMillis = 400))
-        }
-    }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -294,40 +315,83 @@ fun TravelPlacesComponent(
             )
             .padding(16.dp)
     ) {
-        Text(
-            stringResource(R.string.travelPlaces),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
-        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
-
-        Row {
-            ButtonComponent(
-                R.string.addNewPlace,
-                modifier = Modifier.width(160.dp),
-                onClick = { onClick() }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.travelPlaces),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
             )
-            Spacer(modifier = Modifier.width(12.dp))
-            ButtonComponent(
-                R.string.editPlaces,
-                modifier = Modifier.width(200.dp),
-                onClick = {
-                    if (viewModel.travelPlaces.size > 0) {
-                        viewModel.isPlacesVisible = !viewModel.isPlacesVisible
-                    }
-                })
+            Icon(
+                Icons.Filled.Add,
+                contentDescription = null,
+                modifier = Modifier.clickable { onAddPlaceClick() })
         }
+        Divider(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.Gray,
+            thickness = 1.dp
+        )
+        if (viewModel.travelPlaces.isNotEmpty()) {
+            Text(
+                text = "${viewModel.travelPlaces.size} places added",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        } else {
+            Text(
+                text = "No places added yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.Start)
+            )
+        }
+    }
+}
+
+@Composable
+fun TravelPlacesList(
+    navController: NavController,
+    viewModel: TravelFormViewModel,
+    sharedTravelViewModel: SharedTravelViewModel
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top,
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
         if (viewModel.isDeleting) {
             LinearIndicator()
-        } else if (viewModel.isPlacesVisible) {
-            Column(modifier = Modifier.height(height.value.dp)) {
-                viewModel.travelPlaces.forEach { place ->
-                    PlaceCardInit(place) {
-                        viewModel.removePlaceWithLoading(place)
-                        viewModel.isPlacesVisible = false
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
+        } else {
+            LazyColumn(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(viewModel.travelPlaces) { place ->
+                    val travel = viewModel.prepareTempTravelDataToSharedVM()
+                    sharedTravelViewModel.setTempTravelDataEdit(travel)
+                    PlaceCardInit(navController, place,
+                        isOptionsVisible = true,
+                        onRemove = { viewModel.removePlaceWithLoading(place) },
+                        onEdit = {
+                            val placeToEdit = PlaceData(
+                                place?.name,
+                                place?.description,
+                                place?.image,
+                                place?.category,
+                                place?.point
+                            )
+                            viewModel.place = placeToEdit
+                            viewModel.placeImage = placeToEdit.image
+                            viewModel.editedPlaceIndex = viewModel.travelPlaces.indexOf(place)
+                            viewModel.section = TravelFormSection.PlaceForm
+                        }
+                    )
                 }
             }
         }
@@ -335,7 +399,7 @@ fun TravelPlacesComponent(
 }
 
 @Composable
-fun EditTravelNameComponent(viewModel: CreateTravelViewModel) {
+fun EditTravelNameComponent(viewModel: TravelFormViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
@@ -356,7 +420,7 @@ fun EditTravelNameComponent(viewModel: CreateTravelViewModel) {
 }
 
 @Composable
-fun EditTravelDescriptionComponent(viewModel: CreateTravelViewModel) {
+fun EditTravelDescriptionComponent(viewModel: TravelFormViewModel) {
     var enabled by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -430,8 +494,7 @@ fun TravelPlaceDescriptionInput(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditTravelDateComponent(viewModel: CreateTravelViewModel) {
-
+fun EditTravelDateComponent(viewModel: TravelFormViewModel) {
     val startDatePickerDialogVisible = remember { mutableStateOf(false) }
     val endDatePickerDialogVisible = remember { mutableStateOf(false) }
     var startDate by remember { mutableStateOf("") }
@@ -453,14 +516,9 @@ fun EditTravelDateComponent(viewModel: CreateTravelViewModel) {
                     Text(stringResource(R.string.ok))
                 }
             },
-            onDismissRequest = {
-                startDatePickerDialogVisible.value = false
-
-            },
+            onDismissRequest = { startDatePickerDialogVisible.value = false },
             dismissButton = {
-                TextButton(onClick = {
-                    startDatePickerDialogVisible.value = false
-                }) {
+                TextButton(onClick = { startDatePickerDialogVisible.value = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -485,14 +543,9 @@ fun EditTravelDateComponent(viewModel: CreateTravelViewModel) {
                     Text(stringResource(R.string.ok))
                 }
             },
-            onDismissRequest = {
-                endDatePickerDialogVisible.value = false
-
-            },
+            onDismissRequest = { endDatePickerDialogVisible.value = false },
             dismissButton = {
-                TextButton(onClick = {
-                    endDatePickerDialogVisible.value = false
-                }) {
+                TextButton(onClick = { endDatePickerDialogVisible.value = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -501,80 +554,112 @@ fun EditTravelDateComponent(viewModel: CreateTravelViewModel) {
         }
     }
 
-
-    Row(
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
         modifier = Modifier
-            .fillMaxWidth(0.96f)
+            .fillMaxWidth()
+            .padding(4.dp)
             .border(
                 width = 2.dp,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .padding(10.dp)
+                color = Color.Gray,
+                shape = RoundedCornerShape(6.dp)
+            ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.Start
     ) {
-        Icon(
-            Icons.Default.EditCalendar,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(32.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.SpaceAround
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+            modifier = Modifier.padding(12.dp)
         ) {
-            Text(stringResource(R.string.travelDate), fontSize = 18.sp)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                ChangeButton(
-                    modifier = Modifier,
-                    icon = if (viewModel.travel.startDate != "") Icons.Default.Edit else Icons.Default.Add,
-                    size = 24,
-                    changeAction = {
-                        startDatePickerDialogVisible.value = true
-                    }
-                )
-                Text(
-                    text = stringResource(R.string.startDate),
-                    fontSize = 16.sp
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = viewModel.travel.startDate ?: "",
-                    fontSize = 16.sp
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                ChangeButton(
-                    modifier = Modifier,
-                    icon = if (viewModel.travel.endDate != "") Icons.Default.Edit else Icons.Default.Add,
-                    size = 24,
-                    changeAction = {
-                        endDatePickerDialogVisible.value = true
-                    }
-                )
-                Text(
-                    text = stringResource(R.string.endDate),
-                    fontSize = 16.sp
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = viewModel.travel.endDate ?: "",
-                    fontSize = 16.sp
-                )
-            }
+            Icon(
+                Icons.Default.EditCalendar,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = stringResource(R.string.travelDate),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.startDate),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                viewModel.travel.startDate?.let {
+                    Text(
+                        text = it.ifBlank { stringResource(R.string.notSet) },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (viewModel.travel.startDate?.isEmpty() == true) Color.Gray else MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            ChangeButton(
+                icon = if (viewModel.travel.startDate?.isNotEmpty() == true) Icons.Default.Edit else Icons.Default.Add,
+                size = 24,
+                changeAction = { startDatePickerDialogVisible.value = true },
+                modifier = Modifier
+            )
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.endDate),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                viewModel.travel.endDate?.let {
+                    Text(
+                        text = it.ifBlank { stringResource(R.string.notSet) },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (viewModel.travel.endDate?.isEmpty() == true) Color.Gray else MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            ChangeButton(
+                icon = if (viewModel.travel.endDate?.isNotEmpty() == true) Icons.Default.Edit else Icons.Default.Add,
+                size = 24,
+                changeAction = { endDatePickerDialogVisible.value = true },
+                modifier = Modifier
+            )
         }
     }
 }
-
 
 @Composable
 fun TravelPlaceNameInput(
@@ -602,4 +687,46 @@ fun TravelPlaceNameInput(
         ),
         modifier = modifier
     )
+}
+
+@Composable
+fun FavoriteTravelComponent(viewModel: TravelFormViewModel) {
+    var isFavorite by remember { mutableStateOf(viewModel.travel.favourite ?: false) }
+
+    Column(
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .padding(16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(R.string.markAsFavorite),
+                style = MaterialTheme.typography.titleMedium
+            )
+            IconToggleButton(
+                checked = isFavorite,
+                onCheckedChange = { checked ->
+                    isFavorite = checked
+                    viewModel.updateFavoriteStatus(checked)
+                }
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
 }

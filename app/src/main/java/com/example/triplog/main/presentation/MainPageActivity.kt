@@ -3,6 +3,7 @@ package com.example.triplog.main.presentation
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,16 +31,19 @@ import com.example.triplog.main.navigation.Screen
 import com.example.triplog.R
 import com.example.triplog.main.components.SearchBar
 import com.example.triplog.main.navigation.MainTopBar
+import com.example.triplog.main.navigation.SearchBottomBar
 import com.example.triplog.main.navigation.TopApplicationBar
 import com.example.triplog.main.presentation.sections.SearchSection
 import com.example.triplog.profile.presentation.FullScreenLoadingIndicator
+import com.example.triplog.travel.data.TravelData
+import com.example.triplog.travel.presentation.travelGallery.sections.TravelOverviewSection
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun MainPageScreen(navController: NavController) {
     val viewModel: MainPageViewModel = viewModel(factory = MainPageViewModel.factory)
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(key1 = Unit) {
         viewModel.getAuthenticatedUserProfileData()
     }
 
@@ -143,30 +147,63 @@ fun MainPageScreen(navController: NavController) {
 fun MainPageContent(
     innerpadding: PaddingValues, viewModel: MainPageViewModel, navController: NavController
 ) {
-    Column(modifier = Modifier.padding(innerpadding)) {
-        when (viewModel.mainPageSection) {
-            MainPageSection.Main -> {
-                MainPageScreenComponent()
-            }
 
-            MainPageSection.SearchSection -> {
+    when (viewModel.mainPageSection) {
+        MainPageSection.Main -> {
+            Column(
+                modifier = Modifier
+                    .padding(innerpadding)
+                    .fillMaxSize()
+            ) {
+                MainPageScreenComponent(viewModel)
+            }
+        }
+
+        MainPageSection.SearchSection -> {
+            Column(
+                modifier = Modifier
+                    .padding(innerpadding)
+                    .fillMaxSize()
+            ) {
                 SearchSection(navController, viewModel)
             }
+        }
+
+        MainPageSection.TravelPostOverviewSection -> {
+            TravelOverviewSection(
+                navController,
+                innerpadding, viewModel.travelOverview,
+                isOptionsVisible = false,
+                onEditClick = {},
+                onDeleteClick = {},
+            )
         }
     }
 }
 
 @Composable
 fun MainPageBottomBar(navController: NavController, viewModel: MainPageViewModel) {
-    ApplicationBottomBar(block = viewModel.isProgressIndicatorVisible,
-        index = 0,
-        goToMainPage = {},
-        goToProfile = {
-            navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}/4")
-        },
-        goToCreateTravel = {
-            navController.navigate(Screen.CreateTravelScreen.destination)
-        })
+    when (viewModel.mainPageSection) {
+        MainPageSection.Main -> {
+            ApplicationBottomBar(block = viewModel.isProgressIndicatorVisible,
+                index = 0,
+                goToMainPage = {},
+                goToProfile = {
+                    navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}")
+                },
+                goToCreateTravel = {
+                    navController.navigate(Screen.CreateTravelScreen.destination)
+                })
+        }
+
+        MainPageSection.SearchSection -> {
+            if (viewModel.totalPages > 0) {
+                SearchBottomBar(viewModel)
+            }
+        }
+
+        else -> {}
+    }
 }
 
 
@@ -191,6 +228,13 @@ fun MainPageTopBar(viewModel: MainPageViewModel) {
             TopApplicationBar(title = { SearchBar(viewModel) }, onClick = {
                 viewModel.mainPageSection = MainPageSection.Main
             })
+        }
+
+        MainPageSection.TravelPostOverviewSection -> {
+            TopApplicationBar(title = { Text(stringResource(R.string.travelOverview)) }) {
+                viewModel.mainPageSection = MainPageSection.Main
+                viewModel.travelOverview = TravelData()
+            }
         }
     }
 }

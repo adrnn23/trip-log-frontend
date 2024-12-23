@@ -1,4 +1,4 @@
-package com.example.triplog.travel.presentation.create.sections
+package com.example.triplog.travel.presentation.travelForm.sections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,16 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.triplog.R
 import com.example.triplog.profile.components.TitleComponent
-import com.example.triplog.travel.components.EditTravelDateComponent
-import com.example.triplog.travel.components.EditTravelDescriptionComponent
-import com.example.triplog.travel.components.EditTravelNameComponent
-import com.example.triplog.travel.presentation.create.CreateTravelViewModel
+import com.example.triplog.travel.components.EditPlaceCategoryComponent
+import com.example.triplog.travel.components.EditPlaceDescriptionComponent
+import com.example.triplog.travel.components.EditPlaceNameComponent
+import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
 
 @Composable
-fun EditTravelInformationSection(
-    innerpadding: PaddingValues,
-    viewModel: CreateTravelViewModel
-) {
+fun EditPlaceInformationSection(innerpadding: PaddingValues, viewModel: TravelFormViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -35,21 +32,21 @@ fun EditTravelInformationSection(
     ) {
         item {
             TitleComponent(
-                R.string.editTravelInformation,
+                R.string.editPlaceInformation,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
             )
         }
         item {
-            EditTravelNameComponent(viewModel)
+            EditPlaceNameComponent(viewModel)
         }
         item {
-            EditTravelDescriptionComponent(viewModel)
+            EditPlaceDescriptionComponent(viewModel)
             Spacer(modifier = Modifier.height(10.dp))
         }
         item {
-            EditTravelDateComponent(viewModel)
+            EditPlaceCategoryComponent(viewModel)
         }
     }
 }

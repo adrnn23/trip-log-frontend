@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
+import com.example.triplog.R
 import com.example.triplog.main.BackendResponse
 import com.example.triplog.main.LoadingState
 import com.example.triplog.main.ResponseHandler
@@ -20,7 +21,10 @@ import com.example.triplog.main.data.SearchProfilesResult
 import com.example.triplog.main.data.UserID
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
-import kotlinx.coroutines.delay
+import com.example.triplog.network.MapboxClient
+import com.example.triplog.travel.data.PlaceData
+import com.example.triplog.travel.data.TravelData
+import com.mapbox.geojson.Point
 import kotlinx.coroutines.launch
 
 sealed class MainPageState {
@@ -35,6 +39,7 @@ sealed class MainPageState {
 sealed class MainPageSection {
     data object Main : MainPageSection()
     data object SearchSection : MainPageSection()
+    data object TravelPostOverviewSection : MainPageSection()
 }
 
 data class AuthenticatedUserProfileData(
@@ -47,7 +52,8 @@ data class AuthenticatedUserProfileData(
 class MainPageViewModel(
     private val repository: InterfaceRepository,
     val sessionManager: SessionManager,
-    val responseHandler: ResponseHandler
+    val responseHandler: ResponseHandler,
+    val mapboxClient: MapboxClient
 ) :
     ViewModel() {
 
@@ -67,8 +73,9 @@ class MainPageViewModel(
     var isLogoutDialogVisible by mutableStateOf(false)
 
     var query by mutableStateOf("")
-    var page by mutableIntStateOf(1)
-    var searchedProfilesList by mutableStateOf<MutableList<SearchProfilesResult.Data?>?>(null)
+    var currentPage by mutableIntStateOf(1)
+    var totalPages by mutableIntStateOf(0)
+    var searchedProfilesList by mutableStateOf<List<SearchProfilesResult.Data>?>(emptyList())
 
     companion object {
         val factory: ViewModelProvider.Factory = viewModelFactory {
@@ -78,10 +85,12 @@ class MainPageViewModel(
                 val repository = application.container.repository
                 val sessionManager = application.sessionManager
                 val responseHandler = ResponseHandler()
+                val mapboxClient = application.mapboxClient
                 MainPageViewModel(
                     repository = repository,
                     sessionManager = sessionManager,
-                    responseHandler = responseHandler
+                    responseHandler = responseHandler,
+                    mapboxClient = mapboxClient
                 )
             }
         }
@@ -220,32 +229,44 @@ class MainPageViewModel(
         }
     }
 
-    fun getSearchProfilesResult() {
+    fun getSearchProfilesResult(page: Int) {
+        if (loadingState == LoadingState.Loading || query.isBlank() || page < 1) return
+
         loadingState = LoadingState.Loading
-        searchedProfilesList?.clear()
+        isProgressIndicatorVisible = true
+
         val token = sessionManager.getToken()
         viewModelScope.launch {
-            delay(100)
             try {
                 val result = repository.getSearchProfilesResult(token, query, page)
                 if ((result?.resultCode == 200) && (result.data != null)) {
-                    searchedProfilesList =
-                        result.data as MutableList<SearchProfilesResult.Data?>?
-                    val backendResponse = BackendResponse()
-                    processAuthenticatedState(backendResponse)
+                    searchedProfilesList = result.data as List<SearchProfilesResult.Data>?
+                    currentPage = page
+                    totalPages = result.meta?.lastPage ?: 1
+                    mainPageState = MainPageState.Authenticated
                 } else if (result?.resultCode == 401) {
-                    val backendResponse = BackendResponse(message = result.message)
-                    processUnauthenticatedState(backendResponse)
+                    processUnauthenticatedState(BackendResponse(message = result.message))
                 } else {
-                    val backendResponse = BackendResponse(message = result?.message)
-                    processErrorState(backendResponse)
+                    processErrorState(BackendResponse(message = result?.message))
                 }
             } catch (e: Exception) {
-                val backendResponse = BackendResponse(message = e.message)
-                processErrorState(backendResponse)
+                processErrorState(BackendResponse(message = e.message))
+            } finally {
+                loadingState = LoadingState.Loaded
+                isProgressIndicatorVisible = false
             }
-            delay(100)
-            loadingState = LoadingState.Loaded
+        }
+    }
+
+    fun loadNextPage() {
+        if (currentPage < totalPages) {
+            getSearchProfilesResult(currentPage + 1)
+        }
+    }
+
+    fun loadPreviousPage() {
+        if (currentPage > 1) {
+            getSearchProfilesResult(currentPage - 1)
         }
     }
 
@@ -258,7 +279,7 @@ class MainPageViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        getSearchProfilesResult()
+                        getSearchProfilesResult(currentPage)
                     }
 
                     401 -> {
@@ -287,7 +308,7 @@ class MainPageViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        getSearchProfilesResult()
+                        getSearchProfilesResult(currentPage)
                     }
 
                     401 -> {
@@ -317,7 +338,7 @@ class MainPageViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        getSearchProfilesResult()
+                        getSearchProfilesResult(currentPage)
                     }
 
                     401 -> {
@@ -336,4 +357,37 @@ class MainPageViewModel(
             }
         }
     }
+
+    val samplePlaces3 = listOf(
+        PlaceData(
+            name = "Vienna",
+            description = "Vienna.",
+            category = "City",
+            image = null,
+            point = Point.fromLngLat(48.2028, 16.3680)
+        ),
+        PlaceData(
+            name = "Eiffel tower",
+            description = "Iconic landmark of Paris with stunning views.",
+            category = "Nature",
+            image = null,
+            point = Point.fromLngLat(8.5417, 46.8182)
+        )
+    )
+
+    val travel3 = TravelData(
+        name = "European Getaway",
+        description = "A delightful trip across Europe's iconic locations.",
+        startDate = "2024-07-10",
+        endDate = "2024-07-25",
+        favourite = false,
+        image = null,
+        places = samplePlaces3,
+        userProfileImage = R.drawable.ic_launcher_foreground,
+        userName = "Jan Kowalski",
+        timeAgo = "3 hours"
+    )
+
+    val travelList = listOf(travel3)
+    var travelOverview by mutableStateOf(TravelData())
 }

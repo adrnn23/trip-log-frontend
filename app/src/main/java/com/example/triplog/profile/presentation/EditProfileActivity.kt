@@ -116,7 +116,7 @@ fun EditProfileContent(
 ) {
     when (viewModel.section) {
         EditUserProfileSection.Main -> {
-            EditProfileSection(innerpadding, viewModel, navController)
+            EditProfileSection(innerpadding, viewModel)
         }
 
         EditUserProfileSection.EditTravelPreferences -> {
@@ -163,9 +163,7 @@ fun EditProfileBottomBar(viewModel: EditProfileViewModel) {
             }
         }
 
-        EditUserProfileSection.EditBasicInformation -> {
-
-        }
+        EditUserProfileSection.EditBasicInformation -> {}
 
         EditUserProfileSection.UpdatePassword -> {
             ButtonBottomBar(R.string.updatePassword) {

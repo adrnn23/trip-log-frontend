@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,14 +28,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -44,6 +44,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -68,26 +69,21 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import androidx.core.graphics.drawable.toBitmap
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
+import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.components.ChangeButton
-import com.example.triplog.travel.presentation.create.CreateTravelViewModel
-import com.example.triplog.travel.presentation.create.PlaceData
-import com.mapbox.maps.CameraOptions
-import com.mapbox.maps.MapView
-import com.mapbox.maps.plugin.animation.flyTo
-import com.mapbox.maps.plugin.annotation.annotations
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationManager
-import com.mapbox.maps.plugin.annotation.generated.PointAnnotationOptions
-import com.mapbox.maps.plugin.annotation.generated.createPointAnnotationManager
+import com.example.triplog.travel.data.PlaceData
+import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
+import com.google.gson.Gson
+import com.mapbox.geojson.Point
 
 @Composable
 fun PlaceInformationComponent(
-    viewModel: CreateTravelViewModel, onClick: () -> Unit
+    viewModel: TravelFormViewModel, onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.Start,
@@ -134,12 +130,16 @@ fun PlaceInformationComponent(
             style = MaterialTheme.typography.bodyMedium
         )
 
-        ButtonComponent(R.string.editBasicInformation, modifier = Modifier, onClick = { onClick() })
+        ButtonComponent(
+            R.string.editBasicInformation,
+            modifier = Modifier,
+            enabled = true,
+            onClick = { onClick() })
     }
 }
 
 @Composable
-fun EditPlaceNameComponent(viewModel: CreateTravelViewModel) {
+fun EditPlaceNameComponent(viewModel: TravelFormViewModel) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
@@ -160,7 +160,7 @@ fun EditPlaceNameComponent(viewModel: CreateTravelViewModel) {
 }
 
 @Composable
-fun EditPlaceDescriptionComponent(viewModel: CreateTravelViewModel) {
+fun EditPlaceDescriptionComponent(viewModel: TravelFormViewModel) {
     var enabled by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -190,7 +190,7 @@ fun EditPlaceDescriptionComponent(viewModel: CreateTravelViewModel) {
 }
 
 @Composable
-fun EditPlaceCategoryComponent(viewModel: CreateTravelViewModel) {
+fun EditPlaceCategoryComponent(viewModel: TravelFormViewModel) {
     var isCategoriesVisible by remember { mutableStateOf(false) }
 
     val height = remember {
@@ -309,13 +309,13 @@ fun EditPlaceCategoryComponent(viewModel: CreateTravelViewModel) {
 }
 
 @Composable
-fun PlaceLocalizationComponent(
-    viewModel: CreateTravelViewModel, onClick: () -> Unit
+fun TravelPlaceLocalizationComponent(
+    pointTemp: Point?,
+    onClick: () -> Unit
 ) {
-    val context = LocalContext.current
-    val marker = context.getDrawable(R.drawable.red_marker)!!.toBitmap()
-    var pointAnnotationManager: PointAnnotationManager? by remember { mutableStateOf(null) }
-
+    val darkMarker = "pin-s+555555(${pointTemp?.coordinates()?.get(0)},${
+        pointTemp?.coordinates()?.get(1)
+    })"
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -328,14 +328,6 @@ fun PlaceLocalizationComponent(
             )
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.placeOnMap),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
-        Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -344,50 +336,64 @@ fun PlaceLocalizationComponent(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            AndroidView(
-                factory = {
-                    MapView(it).also { mapView ->
-                        pointAnnotationManager = mapView.annotations.createPointAnnotationManager()
-                    }
-                },
-                update = { mapView ->
-                    if (viewModel.place.point != null) {
-                        pointAnnotationManager?.let {
-                            it.deleteAll()
-                            val pointAnnotationOptions = PointAnnotationOptions()
-                                .withIconImage(marker)
-                                .withPoint(viewModel.place.point!!)
-                            it.create(pointAnnotationOptions)
-                            mapView.getMapboxMap().flyTo(
-                                CameraOptions.Builder().zoom(12.0).center(viewModel.place.point)
-                                    .build()
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+            if (pointTemp != null) {
+                StaticMapView(
+                    longitude = pointTemp.longitude(),
+                    latitude = pointTemp.latitude(),
+                    marker = darkMarker,
+                    accessToken = stringResource(R.string.mapbox_access_token)
+                )
+            } else {
+                Text(
+                    text = "No location set",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(
+                onClick = { onClick() },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 6.dp, bottom = 6.dp)
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.editLocalization),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
-        ButtonComponent(
-            R.string.editPlaceLocalization,
-            modifier = Modifier,
-            onClick = { onClick() })
     }
 }
 
-@Composable
-fun PlaceCardInit(place: PlaceData?, onClick: () -> Unit) {
-    var isInverted by remember { mutableStateOf(false) }
 
+@Composable
+fun PlaceCardInit(
+    navController: NavController,
+    place: PlaceData?,
+    isOptionsVisible: Boolean,
+    onRemove: () -> Unit,
+    onEdit: () -> Unit
+) {
+    var isInverted by remember { mutableStateOf(false) }
     Box {
         AnimatedVisibility(
             visible = !isInverted,
             enter = fadeIn(animationSpec = tween(durationMillis = 1000)),
             exit = fadeOut(animationSpec = tween(durationMillis = 1000))
         ) {
-            PlaceCardFront(place) {
-                isInverted = !isInverted
-            }
+            PlaceCardFront(
+                place,
+                onRemove = onRemove,
+                onEdit = onEdit,
+                isOptionsVisible = isOptionsVisible,
+                onClick = { isInverted = !isInverted })
         }
 
         AnimatedVisibility(
@@ -395,13 +401,26 @@ fun PlaceCardInit(place: PlaceData?, onClick: () -> Unit) {
             enter = fadeIn(animationSpec = tween(durationMillis = 1000)),
             exit = fadeOut(animationSpec = tween(durationMillis = 1000))
         ) {
-            PlaceCardBack(place, onClick = { isInverted = !isInverted })
+            PlaceCardBack(
+                place,
+                onMapClick = { longitude, latitude ->
+                    val points = place?.point?.let { listOf(Pair(it.longitude(), it.latitude())) }
+                    val pointsString = Gson().toJson(points)
+                    navController.navigate("${Screen.MapScreen.destination}/${pointsString}")
+                },
+                onClick = { isInverted = !isInverted })
         }
     }
 }
 
 @Composable
-fun PlaceCardFront(place: PlaceData?, onClick: () -> Unit) {
+fun PlaceCardFront(
+    place: PlaceData?,
+    onClick: () -> Unit,
+    isOptionsVisible: Boolean,
+    onEdit: () -> Unit,
+    onRemove: () -> Unit
+) {
     var showImagePreview by remember { mutableStateOf(false) }
 
     if (showImagePreview) {
@@ -410,7 +429,6 @@ fun PlaceCardFront(place: PlaceData?, onClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.8f))
-                    .clickable { showImagePreview = false }
             ) {
                 place?.image?.let { imageUrl ->
                     val painter = rememberAsyncImagePainter(
@@ -430,12 +448,13 @@ fun PlaceCardFront(place: PlaceData?, onClick: () -> Unit) {
             }
         }
     }
+
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(4.dp),
         elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 4.dp)
     ) {
         Column {
             Box(
@@ -468,19 +487,65 @@ fun PlaceCardFront(place: PlaceData?, onClick: () -> Unit) {
                             )
                         )
                 )
-                place?.name?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.titleLarge,
+                if (isOptionsVisible) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(8.dp)
-                    )
+                            .fillMaxWidth()
+                    ) {
+                        place?.name?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier
+                                    .padding(8.dp)
+                            )
+                        }
+                        TravelPlaceActionsMenu(
+                            onEditClick = { onEdit() },
+                            onDeleteClick = { onRemove() }
+                        )
+                    }
+                } else {
+                    place?.name?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .align(Alignment.BottomStart)
+                        )
+                    }
                 }
             }
         }
 
         Column(modifier = Modifier.padding(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                place?.category?.let {
+                    Text(
+                        text = it,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.Map,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    contentDescription = null,
+                    modifier = Modifier.clickable { onClick() }
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             place?.description?.let {
                 Text(
                     text = it,
@@ -488,76 +553,83 @@ fun PlaceCardFront(place: PlaceData?, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                place?.category?.let {
-                    PlaceCategoryCard(it)
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    contentDescription = null,
-                    modifier = Modifier.clickable { onClick() }
-                )
-            }
         }
     }
 }
 
 
 @Composable
-fun PlaceCardBack(place: PlaceData?, onClick: () -> Unit) {
-    val context = LocalContext.current
-    val marker = context.getDrawable(R.drawable.red_marker)!!.toBitmap()
-    var pointAnnotationManager: PointAnnotationManager? by remember { mutableStateOf(null) }
-    var showMapPreview by remember { mutableStateOf(false) }
+fun PlaceCardBack(
+    place: PlaceData?,
+    onMapClick: (Double, Double) -> Unit,
+    onClick: () -> Unit
+) {
+    val mapboxAccessToken = stringResource(R.string.mapbox_access_token)
+    val darkMarker = "pin-s+555555(${place?.point?.coordinates()?.get(0)},${
+        place?.point?.coordinates()?.get(1)
+    })"
 
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(4.dp),
         elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 4.dp)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16 / 9f)
+                    .clickable {
+                        place?.point?.let {
+                            val longitude = it.longitude()
+                            val latitude = it.latitude()
+                            onMapClick(longitude, latitude)
+                        }
+                    }
             ) {
                 if (place?.point != null) {
-                    AndroidView(
-                        factory = {
-                            MapView(it).also { mapView ->
-                                pointAnnotationManager =
-                                    mapView.annotations.createPointAnnotationManager()
-                            }
-                        },
-                        update = { mapView ->
-                            if (place.point != null) {
-                                pointAnnotationManager?.let {
-                                    it.deleteAll()
-                                    val pointAnnotationOptions = PointAnnotationOptions()
-                                        .withIconImage(marker)
-                                        .withPoint(place.point!!)
-                                    it.create(pointAnnotationOptions)
-                                    mapView.getMapboxMap().flyTo(
-                                        CameraOptions.Builder().zoom(12.0).center(place.point)
-                                            .build()
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
+                    StaticMapView(
+                        longitude = place.point?.longitude(),
+                        latitude = place.point?.latitude(),
+                        marker = darkMarker,
+                        accessToken = mapboxAccessToken
+                    )
+                } else {
+                    Text(
+                        "No location available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
             }
+
             Column(modifier = Modifier.padding(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    place?.category?.let {
+                        Text(
+                            text = it,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Photo,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        contentDescription = null,
+                        modifier = Modifier.clickable { onClick() }
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
                 place?.description?.let {
                     Text(
                         text = it,
@@ -565,91 +637,6 @@ fun PlaceCardBack(place: PlaceData?, onClick: () -> Unit) {
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    place?.category?.let {
-                        PlaceCategoryCard(it)
-                    }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        contentDescription = null,
-                        modifier = Modifier.clickable { onClick() }
-                    )
-                }
-            }
-        }
-    }
-
-    if (showMapPreview) {
-        Dialog(onDismissRequest = { showMapPreview = false }) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
-                    .clickable { showMapPreview = false }
-            ) {
-                if (place?.point != null) {
-                    AndroidView(
-                        factory = {
-                            MapView(it).also { mapView ->
-                                pointAnnotationManager =
-                                    mapView.annotations.createPointAnnotationManager()
-                            }
-                        },
-                        update = { mapView ->
-                            if (place.point != null) {
-                                pointAnnotationManager?.let {
-                                    it.deleteAll()
-                                    val pointAnnotationOptions = PointAnnotationOptions()
-                                        .withIconImage(marker)
-                                        .withPoint(place.point!!)
-                                    it.create(pointAnnotationOptions)
-                                    mapView.getMapboxMap().flyTo(
-                                        CameraOptions.Builder().zoom(14.0).center(place.point)
-                                            .build()
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .padding(16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PlaceCategoryCard(category: String?) {
-    Box(
-        modifier = Modifier.border(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            shape = RoundedCornerShape(5.dp)
-        )
-    ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .heightIn(32.dp)
-                .padding(4.dp)
-        ) {
-            category?.let {
-                Text(
-                    text = it,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
             }
         }
     }
@@ -657,13 +644,12 @@ fun PlaceCategoryCard(category: String?) {
 
 @Composable
 fun PlacePhotoComponent(
-    viewModel: CreateTravelViewModel
+    viewModel: TravelFormViewModel
 ) {
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             viewModel.placeImage = uri
         }
-
     val showPhoto = remember { mutableStateOf(false) }
 
     Column(
@@ -714,15 +700,24 @@ fun PlacePhotoComponent(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
-        }
-
-        ButtonComponent(
-            R.string.selectPlacePhoto,
-            modifier = Modifier.fillMaxWidth(0.7f),
-            onClick = {
-                launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
+            IconButton(
+                onClick = { launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 6.dp, bottom = 6.dp)
+                    .size(48.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.editLocalization),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
             }
-        )
+        }
     }
     if (showPhoto.value) {
         AlertDialog(
@@ -762,7 +757,11 @@ fun PlacePhotoComponent(
 }
 
 @Composable
-fun LocalizationSearchBar(mapboxAccessToken: String, viewModel: CreateTravelViewModel) {
+fun LocalizationSearchBar(
+    mapboxAccessToken: String,
+    viewModel: TravelFormViewModel,
+    label: String
+) {
     var query by remember { mutableStateOf("") }
     Row(
         horizontalArrangement = Arrangement.Center,
@@ -774,9 +773,7 @@ fun LocalizationSearchBar(mapboxAccessToken: String, viewModel: CreateTravelView
     ) {
         OutlinedTextField(
             value = query,
-            onValueChange = {
-                query = it
-            },
+            onValueChange = { query = it },
             label = { Text("Search") },
             leadingIcon = {
                 Icon(
@@ -786,6 +783,7 @@ fun LocalizationSearchBar(mapboxAccessToken: String, viewModel: CreateTravelView
                 )
             },
             shape = RoundedCornerShape(16.dp),
+            maxLines = 1,
             textStyle = TextStyle(fontSize = 16.sp),
             modifier = Modifier
                 .weight(1f)
@@ -793,7 +791,7 @@ fun LocalizationSearchBar(mapboxAccessToken: String, viewModel: CreateTravelView
         )
         Spacer(modifier = Modifier.width(8.dp))
         OutlinedButton(
-            onClick = { viewModel.searchPlace(query, mapboxAccessToken) },
+            onClick = { viewModel.searchPlace(query, mapboxAccessToken, label) },
             modifier = Modifier.height(42.dp),
             shape = RoundedCornerShape(16.dp)
         ) {

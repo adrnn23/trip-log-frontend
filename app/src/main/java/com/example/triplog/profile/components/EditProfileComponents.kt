@@ -435,6 +435,7 @@ fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
         ButtonComponent(
             R.string.editPreferences,
             modifier = Modifier.width(220.dp),
+            enabled = true,
             onClick = {
                 viewModel.section =
                     EditUserProfileSection.EditTravelPreferences
@@ -705,6 +706,7 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
         ButtonComponent(
             R.string.addLink,
             modifier = Modifier.width(120.dp),
+            enabled = true,
             onClick = { onClick() }
         )
     }
@@ -829,6 +831,7 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
         ButtonComponent(
             R.string.editBasicInformation,
             modifier = Modifier.width(220.dp),
+            enabled = true,
             onClick = { onClick() }
         )
     }

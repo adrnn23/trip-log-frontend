@@ -56,12 +56,18 @@ fun FriendsRequestsSection(
                 FriendsRequestItem(
                     item,
                     onClickReject = {
-                        item?.id?.let { viewModel.rejectFriendRequest(it) }
+                        item?.id?.let {
+                            viewModel.rejectFriendRequest(it)
+                            viewModel.refreshFriendsRequests()
+                        }
                     },
                     onClickAccept = {
-                        item?.id?.let { viewModel.acceptFriendRequest(it) }
+                        item?.id?.let {
+                            viewModel.refreshFriendsRequests()
+                            viewModel.acceptFriendRequest(it)
+                        }
                     },
-                    onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${item?.user?.id}/${3}") })
+                    onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${item?.user?.id}") })
                 Divider(
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                     thickness = 1.dp,

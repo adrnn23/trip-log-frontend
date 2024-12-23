@@ -40,12 +40,15 @@ import com.example.triplog.profile.presentation.sections.ProfileSection
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun ProfileScreen(navController: NavController, id: Int?, friendStatus: String?) {
+fun ProfileScreen(
+    navController: NavController,
+    id: Int?
+) {
     val viewModel: ProfileViewModel =
         viewModel(factory = ProfileViewModel.provideFactory())
 
     LaunchedEffect(key1 = Unit) {
-        viewModel.initParams(id, friendStatus)
+        viewModel.initParams(id)
     }
 
     LaunchedEffect(viewModel.loadingState, viewModel.profileState) {
@@ -210,7 +213,7 @@ fun ProfileBottomBar(navController: NavController, viewModel: ProfileViewModel) 
         block = viewModel.isProgressIndicatorVisible,
         index = 2,
         goToProfile = {
-            navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}/4")
+            navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}")
         },
         goToMainPage = {
             navController.popBackStack()

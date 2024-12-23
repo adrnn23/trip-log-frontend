@@ -86,6 +86,7 @@ fun EditPasswordComponent(onClick: () -> Unit) {
         ButtonComponent(
             R.string.updateYourPassword,
             modifier = Modifier.width(200.dp),
+            enabled = true,
             onClick = { onClick() }
         )
     }

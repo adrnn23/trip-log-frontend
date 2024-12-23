@@ -41,8 +41,7 @@ import com.example.triplog.profile.presentation.EditUserProfileSection
 @Composable
 fun EditProfileSection(
     innerpadding: PaddingValues,
-    viewModel: EditProfileViewModel,
-    navController: NavController
+    viewModel: EditProfileViewModel
 ) {
     val alpha = remember {
         Animatable(0f)
@@ -61,10 +60,7 @@ fun EditProfileSection(
                 viewModel.isSaveChangesDialogVisible = false
                 viewModel.editUserProfile()
             },
-            onDismissClick = {
-                viewModel.isSaveChangesDialogVisible = false
-                navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.editProfile.id}/4")
-            })
+            onDismissClick = { viewModel.isSaveChangesDialogVisible = false })
     }
     LazyColumn(
         modifier = Modifier

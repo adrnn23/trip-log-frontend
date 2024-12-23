@@ -64,10 +64,10 @@ fun FriendsListSection(
                 FriendItem(
                     item,
                     onClickDelete = {
-                        viewModel.isDeleteFriendDialogVisible = false
+                        viewModel.isDeleteFriendDialogVisible = true
                         item?.id?.let { friendToDelete.value = it }
                     },
-                    onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${item?.id}/${1}") })
+                    onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${item?.id}") })
                 Divider(
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                     thickness = 1.dp,
@@ -115,6 +115,7 @@ fun FriendsListSection(
                     onClick = {
                         viewModel.isDeleteFriendDialogVisible = false
                         friendToDelete.value?.let { viewModel.deleteFriend(it) }
+                        viewModel.refreshFriendsList()
                         friendToDelete.value = null
                     },
                     shape = RoundedCornerShape(5.dp),

@@ -1,6 +1,7 @@
 package com.example.triplog.profile.components
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,6 +39,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,20 +62,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.triplog.R
+import com.example.triplog.main.components.FriendStatusAction
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.TravelNavigationElementData
 import com.example.triplog.profile.data.profile.UserProfileResult
 import com.example.triplog.profile.presentation.ProfileViewModel
+import com.example.triplog.profile.presentation.UserProfileSection
 
 @Composable
-fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int) {
+fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int, onClick: () -> Unit) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
+            .clickable { onClick() }
     ) {
         Row(
             horizontalArrangement = Arrangement.Start,
@@ -82,7 +87,8 @@ fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int) {
             Icon(
                 icon,
                 contentDescription = null,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier
+                    .size(28.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
@@ -93,7 +99,8 @@ fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int) {
         Icon(
             Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = null,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier
+                .size(28.dp)
         )
     }
     Divider(
@@ -130,13 +137,16 @@ fun FriendsList(onClick: () -> Unit) {
 }
 
 @Composable
-fun TravelNavigation() {
+fun TravelNavigation(navController: NavController) {
     val tripsNavigationElements =
         listOf(
-            TravelNavigationElementData(Icons.Filled.TravelExplore, R.string.travels),
-            TravelNavigationElementData(Icons.Filled.Favorite, R.string.favorite),
-            TravelNavigationElementData(Icons.Filled.EditCalendar, R.string.planned),
-            TravelNavigationElementData(Icons.AutoMirrored.Filled.Notes, R.string.travelAdvices)
+            TravelNavigationElementData(
+                Icons.Filled.TravelExplore,
+                R.string.travels
+            ) { navController.navigate(Screen.TravelGalleryScreen.destination) },
+            TravelNavigationElementData(Icons.Filled.Favorite, R.string.favorite) { },
+            TravelNavigationElementData(Icons.Filled.EditCalendar, R.string.planned) { },
+            TravelNavigationElementData(Icons.AutoMirrored.Filled.Notes, R.string.travelAdvices) { }
         )
     Column(
         modifier = Modifier
@@ -148,8 +158,8 @@ fun TravelNavigation() {
             color = MaterialTheme.colorScheme.secondaryContainer,
             thickness = 1.dp
         )
-        tripsNavigationElements.forEach() { item ->
-            TravelNavigationElement(item.icon, item.label)
+        tripsNavigationElements.forEach { item ->
+            TravelNavigationElement(item.icon, item.label) { item.navigate() }
         }
     }
 }
@@ -207,14 +217,13 @@ fun ProfileMainInfoComponent(
         Row(
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             Image(
-                painterResource(id = R.drawable.ic_launcher_foreground),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(size = 100.dp)
+                    .size(100.dp)
                     .border(
                         width = 2.dp,
                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -222,61 +231,75 @@ fun ProfileMainInfoComponent(
                     )
                     .clip(RoundedCornerShape(20.dp))
             )
-            Spacer(modifier = Modifier.width(20.dp))
-            Column {
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
                 ProfileUsername(viewModel.userProfile.username)
-                Spacer(modifier = Modifier.height(4.dp))
                 if (viewModel.isOwnProfile) {
-                    FriendsList { viewModel.getFriendsListResult() }
+                    FriendsList {
+                        viewModel.profileSection = UserProfileSection.FriendsList
+                        viewModel.getFriendsListResult()
+                    }
                 }
             }
-            Spacer(modifier = Modifier.width(20.dp))
-            if (viewModel.isOwnProfile) {
-                EditProfileButton(navController)
-            }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (viewModel.isOwnProfile) {
+            EditProfileButton(navController)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
         DividerComponent()
-        Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceAround,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             StatisticCard(tripsNumber = viewModel.userProfile.tripsCount, label = R.string.travels)
-            Spacer(modifier = Modifier.width(8.dp))
             StatisticCard(
                 tripsNumber = viewModel.userProfile.plannedCount,
                 label = R.string.planned
             )
-            Spacer(modifier = Modifier.width(8.dp))
             StatisticCard(
                 tripsNumber = viewModel.userProfile.favoriteCount,
                 label = R.string.favorite
             )
         }
         DividerComponent()
+        Spacer(modifier = Modifier.height(12.dp))
         TravelPreferencesComponent(viewModel, Modifier)
     }
 }
 
+
 @Composable
 fun EditProfileButton(navController: NavController) {
-    Button(
-        shape = RoundedCornerShape(10.dp),
-        colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.tertiaryContainer),
-        onClick = {
-            navController.navigate(Screen.EditProfileScreen.destination)
-        }) {
+    OutlinedButton(
+        onClick = { navController.navigate(Screen.EditProfileScreen.destination) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            Text(
-                stringResource(R.string.editProfile),
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
             Icon(
                 imageVector = Icons.Default.Edit,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier
-                    .size(16.dp)
+                contentDescription = stringResource(R.string.editProfile),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.editProfile),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
