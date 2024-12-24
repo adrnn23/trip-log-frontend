@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,52 +23,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.triplog.R
-import com.example.triplog.authorization.login.components.InformationDialog
 import com.example.triplog.profile.components.ContentDivider
-import com.example.triplog.profile.data.ErrorData
-import com.example.triplog.profile.data.ErrorType
 import com.example.triplog.profile.presentation.EditProfileViewModel
 
 @Composable
-fun EditTravelPreferencesSection(innerpadding: PaddingValues, viewModel: EditProfileViewModel) {
-    val alpha = remember {
-        Animatable(0f)
-    }
+fun EditTravelPreferencesSection(innerPadding: PaddingValues, viewModel: EditProfileViewModel) {
+    val alpha = remember { Animatable(0f) }
+    val maxSelectedItems = 9
+
     LaunchedEffect(key1 = true) {
         alpha.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 200))
     }
 
-    if (viewModel.errorMessage.isError && viewModel.errorMessage.type==ErrorType.TravelPreferences) {
-        InformationDialog(
-            R.string.validationError,
-            text = {
-                Text(
-                    stringResource(R.string.travelPreferencesNumber),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Error,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
-            },
-            containerColor = { MaterialTheme.colorScheme.errorContainer },
-            onDismiss = { viewModel.errorMessage = ErrorData(false, null, "") },
-            onConfirmClick = { viewModel.errorMessage = ErrorData(false, null, "") }
-        )
-    }
+    val selectedCount = viewModel.tempTravelPreferencesList.count { it?.isSelected == true }
 
     Column(
         modifier = Modifier
             .alpha(alpha.value)
-            .padding(innerpadding)
+            .padding(innerPadding)
             .fillMaxSize()
             .padding(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,11 +51,15 @@ fun EditTravelPreferencesSection(innerpadding: PaddingValues, viewModel: EditPro
     ) {
         LazyColumn {
             items(viewModel.tempTravelPreferencesList.size) { i ->
+                val isSelected = viewModel.tempTravelPreferencesList[i]?.isSelected == true
+                val isSelectable = isSelected || selectedCount < maxSelectedItems
+
                 Column {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween,
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clickable {
+                            .clickable(enabled = isSelectable) {
                                 viewModel.tempTravelPreferencesList = viewModel.tempTravelPreferencesList
                                     .mapIndexed { j, item ->
                                         if (i == j) {
@@ -93,8 +71,12 @@ fun EditTravelPreferencesSection(innerpadding: PaddingValues, viewModel: EditPro
                             .fillMaxWidth()
                             .padding(8.dp)
                     ) {
-                        Text(text = viewModel.tempTravelPreferencesList[i]?.name ?: "", fontSize = 18.sp)
-                        if (viewModel.tempTravelPreferencesList[i]?.isSelected == true) {
+                        Text(
+                            text = viewModel.tempTravelPreferencesList[i]?.name ?: "",
+                            fontSize = 18.sp,
+                            color = if (isSelectable) Color.Unspecified else Color.Gray
+                        )
+                        if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,

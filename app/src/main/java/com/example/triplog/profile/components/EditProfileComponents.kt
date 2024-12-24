@@ -1,5 +1,7 @@
 package com.example.triplog.profile.components
 
+import android.content.Context
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,7 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -25,6 +27,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -44,6 +47,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -72,12 +76,19 @@ import com.example.triplog.R
 import com.example.triplog.authorization.login.components.InformationDialog
 import com.example.triplog.authorization.registration.components.EmailInput
 import com.example.triplog.authorization.registration.components.UsernameInput
-import com.example.triplog.profile.data.ErrorData
-import com.example.triplog.profile.data.ErrorType
+import com.example.triplog.main.ErrorType
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.presentation.EditProfileViewModel
 import com.example.triplog.profile.presentation.EditUserProfileSection
 import com.example.triplog.travel.components.ButtonComponent
+
+fun showToast(context: Context, @StringRes textId: Int) {
+    Toast.makeText(
+        context,
+        context.getString(textId),
+        Toast.LENGTH_SHORT
+    ).show()
+}
 
 @Composable
 fun EditBioComponent(viewModel: EditProfileViewModel) {
@@ -173,6 +184,7 @@ fun EditAvatarComponent(viewModel: EditProfileViewModel) {
             viewModel.avatar = uri
         }
     val showPhoto = remember { mutableStateOf(false) }
+
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -186,19 +198,21 @@ fun EditAvatarComponent(viewModel: EditProfileViewModel) {
             .padding(16.dp)
     ) {
         Text(
-            stringResource(R.string.editAvatar),
+            text = stringResource(R.string.editAvatar),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .height(200.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .clickable { showPhoto.value = true }
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center) {
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { showPhoto.value = true },
+            contentAlignment = Alignment.Center
+        ) {
             if (viewModel.avatar != null) {
                 val painter = rememberAsyncImagePainter(
                     ImageRequest.Builder(LocalContext.current)
@@ -208,32 +222,31 @@ fun EditAvatarComponent(viewModel: EditProfileViewModel) {
                 Image(
                     painter = painter,
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .align(Alignment.Center)
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             } else {
                 Text(
                     text = stringResource(R.string.noPhotoSelected),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    modifier = Modifier.align(Alignment.Center)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
-            ChangeButton(
-                icon = Icons.Default.Edit,
-                modifier = Modifier.align(Alignment.BottomEnd)
+            EditAvatarButton(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(6.dp)
             ) {
                 launcher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
             }
         }
     }
+
     if (showPhoto.value) {
         AlertDialog(
             onDismissRequest = { showPhoto.value = false },
             title = {
-                Text(text = stringResource(R.string.travelPhoto))
+                Text(text = stringResource(R.string.profilePhoto))
             },
             text = {
                 if (viewModel.avatar != null) {
@@ -459,6 +472,29 @@ fun ChangeButton(modifier: Modifier, icon: ImageVector, size: Int = 28, changeAc
 }
 
 @Composable
+fun EditAvatarButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = { onClick() },
+        modifier = modifier
+            .padding(end = 6.dp, bottom = 6.dp)
+            .size(48.dp)
+            .background(
+                color = MaterialTheme.colorScheme.primary,
+                shape = CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = Icons.Default.Edit,
+            contentDescription = stringResource(R.string.editAvatar),
+            tint = MaterialTheme.colorScheme.onPrimary
+        )
+    }
+}
+
+@Composable
 fun ContentDivider() {
     Spacer(modifier = Modifier.height(4.dp))
     Divider(
@@ -528,45 +564,31 @@ fun EditProfileDialog(
 @Composable
 fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
     var indexToRemove by remember { mutableStateOf<Int?>(null) }
-
     var site by remember { mutableStateOf("") }
     var link by remember { mutableStateOf("") }
+    val linksCount = viewModel.links.count { it.link.isNotEmpty() }
 
-    if (viewModel.errorMessage.isError && viewModel.errorMessage.type == ErrorType.Links) {
+    if (viewModel.errorState.isError) {
         InformationDialog(
-            R.string.validationError,
-            text = {
-                if (viewModel.errorMessage.description == "Number") {
-                    Text(
-                        stringResource(R.string.linksNumber),
-                        fontSize = 14.sp, color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-                if (viewModel.errorMessage.description == "SiteAndLink") {
-                    Text(
-                        stringResource(R.string.siteAndLink),
-                        fontSize = 14.sp, color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+            title = when (viewModel.errorState.type) {
+                ErrorType.VALIDATION -> R.string.validationError
+                ErrorType.NETWORK -> R.string.networkError
+                ErrorType.LINKS -> R.string.linksError
+                null -> TODO()
             },
+            text = { Text(viewModel.errorState.description, fontSize = 14.sp) },
             icon = {
                 Icon(
                     imageVector = Icons.Default.Error,
-                    contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer
                 )
             },
             containerColor = { MaterialTheme.colorScheme.errorContainer },
-            onDismiss = {
-                viewModel.errorMessage = ErrorData(false, null, "")
-                viewModel.isAddLinkDialogVisible = true
-            },
-            onConfirmClick = {
-                viewModel.errorMessage = ErrorData(false, null, "")
-                viewModel.isAddLinkDialogVisible = true
-            }
+            onDismiss = { viewModel.clearError() },
+            onConfirmClick = { viewModel.clearError() }
         )
     }
-
     if (viewModel.isAddLinkDialogVisible) {
         EditProfileDialog(
             icon = { Icon(Icons.Default.Link, contentDescription = null) },
@@ -590,9 +612,6 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                     site,
                     link,
                     onShowDialogChange = { viewModel.isAddLinkDialogVisible = it },
-                    onErrorValidation = {
-                        viewModel.errorMessage = ErrorData(true, ErrorType.Links, "SiteAndLink")
-                    },
                     onClearInputs = {
                         site = ""
                         link = ""
@@ -624,10 +643,12 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                             viewModel.links[indexToRemove!!] =
                                 (LinkData("Facebook", Icons.Default.Facebook, ""))
                         }
+
                         1 -> {
                             viewModel.links[indexToRemove!!] =
                                 (LinkData("Instagram", Icons.Default.Link, ""))
                         }
+
                         2 -> {
                             viewModel.links[indexToRemove!!] =
                                 (LinkData("X", Icons.Default.Link, ""))
@@ -690,7 +711,11 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
+                            Divider(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color.Gray,
+                                thickness = 1.dp
+                            )
                             Spacer(modifier = Modifier.height(4.dp))
                         }
                     }
@@ -706,7 +731,7 @@ fun LinksListComponent(viewModel: EditProfileViewModel, onClick: () -> Unit) {
         ButtonComponent(
             R.string.addLink,
             modifier = Modifier.width(120.dp),
-            enabled = true,
+            enabled = linksCount <= 2,
             onClick = { onClick() }
         )
     }
@@ -777,7 +802,13 @@ fun AddLinkForm(
                                 onSiteChange(item.name)
                                 expanded = false
                             },
-                            text = { Text(text = item.name, fontSize = 14.sp) }
+                            text = { Text(text = item.name, fontSize = 14.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = item.imageVector,
+                                    contentDescription = null
+                                )
+                            }
                         )
                     }
                 }

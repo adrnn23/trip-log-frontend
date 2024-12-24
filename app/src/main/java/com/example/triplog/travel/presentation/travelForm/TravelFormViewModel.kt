@@ -1,6 +1,7 @@
 package com.example.triplog.travel.presentation.travelForm
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
+import com.example.triplog.R
 import com.example.triplog.main.BackendResponse
 import com.example.triplog.main.ResponseHandler
 import com.example.triplog.main.SessionManager
@@ -18,6 +20,7 @@ import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.network.MapboxClient
+import com.example.triplog.profile.components.showToast
 import com.example.triplog.travel.data.PlaceCategoryData
 import com.example.triplog.travel.data.PlaceData
 import com.example.triplog.travel.data.TravelData
@@ -70,7 +73,6 @@ class TravelFormViewModel(
     var isCreateEditTravelDialogVisible by mutableStateOf(false)
     var isBackendResponseVisible by mutableStateOf(false)
     var isProgressIndicatorVisible by mutableStateOf(false)
-    var isPlacesVisible by mutableStateOf(false)
     var editedPlaceIndex by mutableStateOf<Int?>(null)
 
     var editScreen by mutableStateOf(false)
@@ -94,16 +96,14 @@ class TravelFormViewModel(
     }
 
     var isDeleting by mutableStateOf(false)
-    fun removePlaceWithLoading(place: PlaceData?) {
+    fun removePlaceWithLoading(place: PlaceData?, context: Context) {
         isDeleting = true
         travelPlaces.remove(place)
         viewModelScope.launch {
             delay(200)
             isDeleting = false
-            if (travelPlaces.size > 0) {
-                isPlacesVisible = true
-            }
         }
+        showToast(context, R.string.placeDeleted)
     }
 
     companion object {

@@ -17,8 +17,6 @@ import com.example.triplog.travel.presentation.MapScreen
 import com.example.triplog.travel.presentation.SharedTravelViewModel
 import com.example.triplog.travel.presentation.travelForm.TravelFormScreen
 import com.example.triplog.travel.presentation.travelGallery.TravelGalleryScreen
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 
 sealed class Screen(val destination: String) {
     data object LoginScreen : Screen("LoginScreen")
@@ -26,7 +24,7 @@ sealed class Screen(val destination: String) {
     data object ProfileScreen : Screen("ProfileScreen")
     data object SplashScreen : Screen("SplashScreen")
     data object EditProfileScreen : Screen("EditProfileScreen")
-    data object CreateTravelScreen : Screen("CreateTravelScreen")
+    data object TravelFormScreen : Screen("TravelFormScreen")
     data object MainPageScreen : Screen("MainPageScreen")
     data object TravelGalleryScreen : Screen("TravelGalleryScreen")
     data object MapScreen : Screen("MapScreen")
@@ -36,10 +34,6 @@ sealed class Screen(val destination: String) {
 fun AppNavigation() {
     val navController = rememberNavController()
     val sharedTravelViewModel: SharedTravelViewModel = viewModel()
-
-    fun String.toPointsList(): List<Pair<Double, Double>> {
-        return Gson().fromJson(this, object : TypeToken<List<Pair<Double, Double>>>() {}.type)
-    }
 
     NavHost(navController = navController, startDestination = Screen.SplashScreen.destination) {
         composable(route = Screen.SplashScreen.destination) {
@@ -72,22 +66,19 @@ fun AppNavigation() {
             EditProfileScreen(navController = navController)
         }
         composable(route = Screen.MainPageScreen.destination) {
-            MainPageScreen(navController = navController)
+            MainPageScreen(navController = navController, sharedTravelViewModel=sharedTravelViewModel)
         }
-        composable(route = Screen.CreateTravelScreen.destination) {
+        composable(route = Screen.TravelFormScreen.destination) {
             TravelFormScreen(navController = navController, sharedTravelViewModel)
         }
         composable(route = Screen.TravelGalleryScreen.destination) {
             TravelGalleryScreen(navController = navController, sharedTravelViewModel)
         }
         composable(
-            route = "${Screen.MapScreen.destination}/{points}",
-            arguments = listOf(navArgument("points") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val pointsJson = backStackEntry.arguments?.getString("points")
-            val points = pointsJson?.toPointsList() ?: emptyList()
+            route = Screen.MapScreen.destination
+        ) {
             MapScreen(
-                points = points,
+                sharedTravelViewModel = sharedTravelViewModel,
                 onBackPressed = { navController.popBackStack() }
             )
         }

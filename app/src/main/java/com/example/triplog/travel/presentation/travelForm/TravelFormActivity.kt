@@ -6,12 +6,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.navigation.ButtonBottomBar
 import com.example.triplog.main.navigation.TopApplicationBar
+import com.example.triplog.profile.components.showToast
 import com.example.triplog.profile.presentation.FullScreenLoadingIndicator
 import com.example.triplog.travel.components.LocalizationSearchBar
 import com.example.triplog.travel.data.PlaceData
@@ -104,6 +106,8 @@ fun TravelFormContent(
 
 @Composable
 fun TravelFormBottomBar(viewModel: TravelFormViewModel) {
+    val context = LocalContext.current
+
     when (viewModel.section) {
         TravelFormSection.Main -> {
             val buttonLabel =
@@ -150,6 +154,7 @@ fun TravelFormBottomBar(viewModel: TravelFormViewModel) {
                     viewModel.placeImage = null
 
                     viewModel.travelPlaces.add(newPlace)
+                    showToast(context, R.string.placeAddedToTravel)
                     viewModel.section = TravelFormSection.Main
                 }
             }

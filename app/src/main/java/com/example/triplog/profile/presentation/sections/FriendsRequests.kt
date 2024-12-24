@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,7 +43,7 @@ fun FriendsRequestsSection(
     viewModel: ProfileViewModel,
     navController: NavController
 ) {
-
+    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -58,13 +59,11 @@ fun FriendsRequestsSection(
                     onClickReject = {
                         item?.id?.let {
                             viewModel.rejectFriendRequest(it)
-                            viewModel.refreshFriendsRequests()
                         }
                     },
                     onClickAccept = {
                         item?.id?.let {
-                            viewModel.refreshFriendsRequests()
-                            viewModel.acceptFriendRequest(it)
+                            viewModel.acceptFriendRequest(it, context)
                         }
                     },
                     onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${item?.user?.id}") })

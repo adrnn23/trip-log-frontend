@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
+import com.example.triplog.main.navigation.Screen
 import com.example.triplog.main.navigation.TopApplicationBar
 import com.example.triplog.travel.data.TravelData
 import com.example.triplog.travel.presentation.SharedTravelViewModel
@@ -135,6 +136,11 @@ fun TravelGalleryContent(
                 onDeleteClick = {
                     viewModel.setDeleteDialogVisibility(true)
                 },
+                onSeeMapClick = {
+                    val travel = viewModel.prepareTempTravelDataToSharedVM()
+                    sharedTravelViewModel.setTempTravelDataEdit(travel)
+                    navController.navigate(Screen.MapScreen.destination)
+                }
             )
         }
     }

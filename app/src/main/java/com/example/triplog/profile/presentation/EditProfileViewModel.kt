@@ -15,6 +15,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.example.triplog.main.BackendResponse
+import com.example.triplog.main.ErrorState
+import com.example.triplog.main.ErrorType
 import com.example.triplog.main.LoadingState
 import com.example.triplog.main.ResponseHandler
 import com.example.triplog.main.SessionManager
@@ -22,7 +24,6 @@ import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
-import com.example.triplog.profile.data.ErrorData
 import com.example.triplog.profile.data.profile.EditUserProfileRequest
 import com.example.triplog.profile.data.profile.EditUserProfileResult
 import com.example.triplog.profile.data.profile.TravelPreferencesResult
@@ -121,7 +122,20 @@ class EditProfileViewModel(
     var newPassword by mutableStateOf<String?>("")
     var repeatedNewPassword by mutableStateOf<String?>("")
 
-    var errorMessage by mutableStateOf(ErrorData(false, null, ""))
+    var errorState by mutableStateOf(ErrorState())
+        private set
+
+    private fun setError(type: ErrorType, description: String) {
+        errorState = ErrorState(
+            isError = true,
+            type = type,
+            description = description
+        )
+    }
+
+    fun clearError() {
+        errorState = ErrorState()
+    }
 
     companion object {
         fun provideFactory(
@@ -149,27 +163,43 @@ class EditProfileViewModel(
         site: String,
         link: String,
         onShowDialogChange: (Boolean) -> Unit,
-        onClearInputs: () -> Unit,
-        onErrorValidation: () -> Unit,
+        onClearInputs: () -> Unit
     ) {
         if (site.isNotEmpty() && link.isNotEmpty()) {
             var formattedLink = link.lowercase()
             if (!formattedLink.startsWith("https://")) {
                 formattedLink = "https://$formattedLink"
             }
+
+            val siteKeywordMap = mapOf(
+                "Facebook" to "facebook",
+                "Instagram" to "instagram",
+                "X" to "x"
+            )
+
+            val keyword = siteKeywordMap[site]
+            if (keyword != null && !formattedLink.contains(keyword)) {
+                setError(ErrorType.LINKS, "The link does not match the selected site")
+                return
+            }
+
             when (site) {
                 "Facebook" -> links[0] = LinkData(site, Icons.Default.Facebook, formattedLink)
                 "Instagram" -> links[1] = LinkData(site, Icons.Default.Link, formattedLink)
                 "X" -> links[2] = LinkData(site, Icons.Default.Link, formattedLink)
-                else -> onErrorValidation()
+                else -> {
+                    setError(ErrorType.LINKS, "Invalid site")
+                    return
+                }
             }
             onClearInputs()
             onShowDialogChange(false)
         } else {
+            setError(ErrorType.VALIDATION, "Site and link cannot be empty")
             onShowDialogChange(false)
-            onErrorValidation()
         }
     }
+
 
     /**
      * linksInit initializes links added by user. Function used by getUserProfileResult() to set links in profile.

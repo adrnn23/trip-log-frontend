@@ -96,6 +96,13 @@ class MainPageViewModel(
         }
     }
 
+    fun prepareTempTravelDataToSharedVM(): TravelData {
+        val travel = travelOverview
+        travel.places = travelOverview.places
+        travel.image = travelOverview.image
+        return travel
+    }
+
     private fun processUnauthenticatedState(backendResponse: BackendResponse) {
         mainPageState = MainPageState.Unauthenticated
         responseHandler.showMessage(backendResponse)

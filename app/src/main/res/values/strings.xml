@@ -45,6 +45,7 @@
 
     <string name="editProfile">Edit profile</string>
     <string name="editAvatar">Edit avatar</string>
+    <string name="profilePhoto">Profile photo</string>
     <string name="editYourProfile">Edit your profile</string>
     <string name="editUsername">Edit username</string>
     <string name="editEmail">Edit e-mail</string>
@@ -79,7 +80,6 @@
     <string name="instagram">Instagram</string>
     <string name="x">X</string>
     <string name="linksNumber">Number of links must be equal to or less than 3.</string>
-    <string name="siteAndLink">Link must match to the site.</string>
 
     <string name="travelName">Travel name</string>
     <string name="travelDescription">Travel description</string>
@@ -154,5 +154,12 @@
     <string name="notSet">Not set</string>
     <string name="deleteTravel">Do you want to delete your travel?</string>
     <string name="viewOnMap">See travel on map</string>
+    <string name="networkError">Network error</string>
+    <string name="linksError">Links error</string>
+    <string name="travelPreferencesSaved">Travel preferences saved</string>
+    <string name="placeAddedToTravel">Place added to travel</string>
+    <string name="placeDeleted">Place has been deleted</string>
+    <string name="userDeleted">User deleted from friends</string>
+    <string name="userAddedToFriends">User added to friends</string>
 
 </resources>

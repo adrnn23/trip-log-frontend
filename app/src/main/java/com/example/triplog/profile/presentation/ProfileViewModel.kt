@@ -1,6 +1,7 @@
 package com.example.triplog.profile.presentation
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Facebook
 import androidx.compose.material.icons.filled.Link
@@ -13,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
+import com.example.triplog.R
 import com.example.triplog.main.BackendResponse
 import com.example.triplog.main.LoadingState
 import com.example.triplog.main.ResponseHandler
@@ -20,6 +22,7 @@ import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
+import com.example.triplog.profile.components.showToast
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.profile.GetFriendsListResult
 import com.example.triplog.profile.data.profile.GetFriendsRequestsResult
@@ -84,6 +87,10 @@ class ProfileViewModel(
         profileSection = UserProfileSection.Main
         userProfile.id = id
         isOwnProfile = id == sessionManager.getUserId()
+        if(isOwnProfile){
+            getFriendsListResult()
+            getFriendsRequests()
+        }
     }
 
     companion object {
@@ -224,7 +231,7 @@ class ProfileViewModel(
         }
     }
 
-    fun getUserProfileResult() {
+    private fun getUserProfileResult() {
         loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
@@ -262,8 +269,7 @@ class ProfileViewModel(
         }
     }
 
-    fun getFriendsListResult() {
-        loadingState = LoadingState.Loading
+    private fun getFriendsListResult() {
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -273,7 +279,6 @@ class ProfileViewModel(
                         friendsList = result.data.toMutableList()
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        profileSection = UserProfileSection.FriendsList
                     } else if (result.resultCode == 401) {
                         val backendResponse = BackendResponse(message = result.message)
                         processUnauthenticatedState(backendResponse)
@@ -286,12 +291,10 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processErrorState(backendResponse)
             }
-            loadingState = LoadingState.Loaded
         }
     }
 
-    fun getFriendsRequests() {
-        loadingState = LoadingState.Loading
+    private fun getFriendsRequests() {
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -301,7 +304,6 @@ class ProfileViewModel(
                         friendsRequests = result.data.toMutableList()
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        profileSection = UserProfileSection.FriendsRequests
                     } else if (result.resultCode == 401) {
                         val backendResponse = BackendResponse(message = result.message)
                         processUnauthenticatedState(backendResponse)
@@ -314,11 +316,10 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processErrorState(backendResponse)
             }
-            loadingState = LoadingState.Loaded
         }
     }
 
-    fun refreshFriendsRequests() {
+    private fun refreshFriendsRequests() {
         getFriendsRequests()
     }
 
@@ -327,8 +328,7 @@ class ProfileViewModel(
     }
 
 
-    fun acceptFriendRequest(requestId: Int) {
-        loadingState = LoadingState.Loading
+    fun acceptFriendRequest(requestId: Int, context: Context) {
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -337,6 +337,9 @@ class ProfileViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
+                        refreshFriendsRequests()
+                        refreshFriendsList()
+                        showToast(context, R.string.userAddedToFriends)
                     }
 
                     401 -> {
@@ -353,12 +356,10 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processErrorState(backendResponse)
             }
-            loadingState = LoadingState.Loaded
         }
     }
 
     fun rejectFriendRequest(requestId: Int) {
-        loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
@@ -367,6 +368,7 @@ class ProfileViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
+                        refreshFriendsRequests()
                     }
 
                     401 -> {
@@ -383,11 +385,10 @@ class ProfileViewModel(
                 val backendResponse = BackendResponse(message = e.message)
                 processUnauthenticatedState(backendResponse)
             }
-            loadingState = LoadingState.Loaded
         }
     }
 
-    fun deleteFriend(friendId: Int) {
+    fun deleteFriend(friendId: Int, context: Context) {
         loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
@@ -397,7 +398,8 @@ class ProfileViewModel(
                     200 -> {
                         val backendResponse = BackendResponse()
                         processAuthenticatedState(backendResponse)
-                        getFriendsListResult()
+                        refreshFriendsList()
+                        showToast(context, R.string.userDeleted)
                     }
 
                     401 -> {

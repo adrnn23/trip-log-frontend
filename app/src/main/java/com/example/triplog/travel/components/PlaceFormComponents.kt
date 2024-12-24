@@ -74,11 +74,9 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
-import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.components.ChangeButton
 import com.example.triplog.travel.data.PlaceData
 import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
-import com.google.gson.Gson
 import com.mapbox.geojson.Point
 
 @Composable
@@ -403,11 +401,6 @@ fun PlaceCardInit(
         ) {
             PlaceCardBack(
                 place,
-                onMapClick = { longitude, latitude ->
-                    val points = place?.point?.let { listOf(Pair(it.longitude(), it.latitude())) }
-                    val pointsString = Gson().toJson(points)
-                    navController.navigate("${Screen.MapScreen.destination}/${pointsString}")
-                },
                 onClick = { isInverted = !isInverted })
         }
     }
@@ -561,7 +554,6 @@ fun PlaceCardFront(
 @Composable
 fun PlaceCardBack(
     place: PlaceData?,
-    onMapClick: (Double, Double) -> Unit,
     onClick: () -> Unit
 ) {
     val mapboxAccessToken = stringResource(R.string.mapbox_access_token)
@@ -581,13 +573,6 @@ fun PlaceCardBack(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16 / 9f)
-                    .clickable {
-                        place?.point?.let {
-                            val longitude = it.longitude()
-                            val latitude = it.latitude()
-                            onMapClick(longitude, latitude)
-                        }
-                    }
             ) {
                 if (place?.point != null) {
                     StaticMapView(

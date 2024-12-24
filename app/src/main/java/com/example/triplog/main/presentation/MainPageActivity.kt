@@ -36,11 +36,12 @@ import com.example.triplog.main.navigation.TopApplicationBar
 import com.example.triplog.main.presentation.sections.SearchSection
 import com.example.triplog.profile.presentation.FullScreenLoadingIndicator
 import com.example.triplog.travel.data.TravelData
+import com.example.triplog.travel.presentation.SharedTravelViewModel
 import com.example.triplog.travel.presentation.travelGallery.sections.TravelOverviewSection
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun MainPageScreen(navController: NavController) {
+fun MainPageScreen(navController: NavController, sharedTravelViewModel: SharedTravelViewModel) {
     val viewModel: MainPageViewModel = viewModel(factory = MainPageViewModel.factory)
 
     LaunchedEffect(key1 = Unit) {
@@ -59,7 +60,7 @@ fun MainPageScreen(navController: NavController) {
         if (viewModel.isProgressIndicatorVisible) {
             FullScreenLoadingIndicator()
         } else {
-            MainPageContent(innerpadding, viewModel, navController)
+            MainPageContent(innerpadding, viewModel, navController, sharedTravelViewModel)
         }
     }
 
@@ -145,7 +146,10 @@ fun MainPageScreen(navController: NavController) {
 
 @Composable
 fun MainPageContent(
-    innerpadding: PaddingValues, viewModel: MainPageViewModel, navController: NavController
+    innerpadding: PaddingValues,
+    viewModel: MainPageViewModel,
+    navController: NavController,
+    sharedTravelViewModel: SharedTravelViewModel
 ) {
 
     when (viewModel.mainPageSection) {
@@ -176,6 +180,11 @@ fun MainPageContent(
                 isOptionsVisible = false,
                 onEditClick = {},
                 onDeleteClick = {},
+                onSeeMapClick = {
+                    val travel = viewModel.prepareTempTravelDataToSharedVM()
+                    sharedTravelViewModel.setTempTravelDataEdit(travel)
+                    navController.navigate(Screen.MapScreen.destination)
+                },
             )
         }
     }
@@ -192,7 +201,7 @@ fun MainPageBottomBar(navController: NavController, viewModel: MainPageViewModel
                     navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}")
                 },
                 goToCreateTravel = {
-                    navController.navigate(Screen.CreateTravelScreen.destination)
+                    navController.navigate(Screen.TravelFormScreen.destination)
                 })
         }
 

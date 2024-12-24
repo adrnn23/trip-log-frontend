@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,8 +24,7 @@ import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.navigation.ButtonBottomBar
 import com.example.triplog.main.navigation.TopApplicationBar
-import com.example.triplog.profile.data.ErrorData
-import com.example.triplog.profile.data.ErrorType
+import com.example.triplog.profile.components.showToast
 import com.example.triplog.profile.presentation.sections.EditBasicInformationSection
 import com.example.triplog.profile.presentation.sections.EditProfileSection
 import com.example.triplog.profile.presentation.sections.EditTravelPreferencesSection
@@ -52,7 +52,7 @@ fun EditProfileScreen(navController: NavController) {
         if (viewModel.isProgressIndicatorVisible) {
             FullScreenLoadingIndicator()
         } else {
-            EditProfileContent(innerpadding, viewModel, navController)
+            EditProfileContent(innerpadding, viewModel)
         }
     }
 
@@ -111,8 +111,7 @@ fun EditProfileScreen(navController: NavController) {
 @Composable
 fun EditProfileContent(
     innerpadding: PaddingValues,
-    viewModel: EditProfileViewModel,
-    navController: NavController
+    viewModel: EditProfileViewModel
 ) {
     when (viewModel.section) {
         EditUserProfileSection.Main -> {
@@ -135,6 +134,8 @@ fun EditProfileContent(
 
 @Composable
 fun EditProfileBottomBar(viewModel: EditProfileViewModel) {
+    val context = LocalContext.current
+
     when (viewModel.section) {
         EditUserProfileSection.Main -> {
             ButtonBottomBar(R.string.saveChanges) {
@@ -144,22 +145,11 @@ fun EditProfileBottomBar(viewModel: EditProfileViewModel) {
 
         EditUserProfileSection.EditTravelPreferences -> {
             ButtonBottomBar(R.string.saveTravelPreferences) {
-                var counter = 0
-                viewModel.tempTravelPreferencesList.forEach { item ->
-                    if (item?.isSelected == true)
-                        counter++
-                }
-                if (counter > 9) {
-                    viewModel.errorMessage =
-                        ErrorData(true, ErrorType.TravelPreferences, "")
-                    counter = 0
-                } else {
-                    viewModel.travelPreferencesList =
-                        viewModel.tempTravelPreferencesList.toMutableList()
-                    viewModel.tempTravelPreferencesList.clear()
-                    viewModel.section = EditUserProfileSection.Main
-                    counter = 0
-                }
+                viewModel.travelPreferencesList =
+                    viewModel.tempTravelPreferencesList.toMutableList()
+                viewModel.tempTravelPreferencesList.clear()
+                showToast(context, R.string.travelPreferencesSaved)
+                viewModel.section = EditUserProfileSection.Main
             }
         }
 

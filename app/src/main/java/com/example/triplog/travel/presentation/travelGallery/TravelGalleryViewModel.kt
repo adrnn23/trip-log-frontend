@@ -85,7 +85,7 @@ class TravelGalleryViewModel(
     }
 
     fun navigateToEditTravel(navController: NavController) {
-        navController.navigate(Screen.CreateTravelScreen.destination)
+        navController.navigate(Screen.TravelFormScreen.destination)
     }
 
     companion object {

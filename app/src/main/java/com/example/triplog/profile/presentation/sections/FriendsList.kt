@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +50,8 @@ fun FriendsListSection(
     viewModel: ProfileViewModel,
     navController: NavController
 ) {
-    var friendToDelete = remember { mutableStateOf<Int?>(null) }
+    val friendToDelete = remember { mutableStateOf<Int?>(null) }
+    var context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier
@@ -114,7 +116,7 @@ fun FriendsListSection(
                 TextButton(
                     onClick = {
                         viewModel.isDeleteFriendDialogVisible = false
-                        friendToDelete.value?.let { viewModel.deleteFriend(it) }
+                        friendToDelete.value?.let { viewModel.deleteFriend(it, context) }
                         viewModel.refreshFriendsList()
                         friendToDelete.value = null
                     },

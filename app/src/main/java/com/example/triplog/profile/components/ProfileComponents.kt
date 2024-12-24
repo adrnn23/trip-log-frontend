@@ -3,6 +3,7 @@ package com.example.triplog.profile.components
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,8 +33,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.TravelExplore
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
@@ -62,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.triplog.R
-import com.example.triplog.main.components.FriendStatusAction
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.data.TravelNavigationElementData
@@ -119,22 +117,38 @@ fun ProfileUsername(username: String?) {
 }
 
 @Composable
-fun FriendsList(onClick: () -> Unit) {
+fun FriendsList(friendCount: Int, onClick: () -> Unit, modifier: Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable { onClick() }) {
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier
+            .height(48.dp)
+            .clickable { onClick() }
+            .background(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.People,
+            contentDescription = stringResource(R.string.friends),
+            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = stringResource(R.string.friends),
-            fontSize = 16.sp
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
         )
-        Spacer(modifier = Modifier.width(4.dp))
-        Icon(
-            Icons.Default.People,
-            contentDescription = stringResource(R.string.friends),
-            modifier = Modifier.size(18.dp)
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = friendCount.toString(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Bold
         )
     }
 }
+
 
 @Composable
 fun TravelNavigation(navController: NavController) {
@@ -237,51 +251,48 @@ fun ProfileMainInfoComponent(
                 modifier = Modifier.weight(1f)
             ) {
                 ProfileUsername(viewModel.userProfile.username)
-                if (viewModel.isOwnProfile) {
-                    FriendsList {
-                        viewModel.profileSection = UserProfileSection.FriendsList
-                        viewModel.getFriendsListResult()
-                    }
-                }
+                StatisticCard(
+                    stats = listOf(
+                        viewModel.userProfile.tripsCount to "Travels",
+                        viewModel.userProfile.plannedCount to "Planned",
+                        viewModel.userProfile.favoriteCount to "Favorites"
+                    )
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
         if (viewModel.isOwnProfile) {
-            EditProfileButton(navController)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                FriendsList(
+                    friendCount = viewModel.friendsList.size,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        viewModel.profileSection = UserProfileSection.FriendsList
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                EditProfileButton(navController, modifier = Modifier.weight(1f))
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
-        DividerComponent()
 
-        Row(
-            horizontalArrangement = Arrangement.SpaceAround,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            StatisticCard(tripsNumber = viewModel.userProfile.tripsCount, label = R.string.travels)
-            StatisticCard(
-                tripsNumber = viewModel.userProfile.plannedCount,
-                label = R.string.planned
-            )
-            StatisticCard(
-                tripsNumber = viewModel.userProfile.favoriteCount,
-                label = R.string.favorite
-            )
-        }
-        DividerComponent()
-        Spacer(modifier = Modifier.height(12.dp))
         TravelPreferencesComponent(viewModel, Modifier)
     }
 }
 
 
 @Composable
-fun EditProfileButton(navController: NavController) {
+fun EditProfileButton(navController: NavController, modifier: Modifier) {
     OutlinedButton(
         onClick = { navController.navigate(Screen.EditProfileScreen.destination) },
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .height(48.dp),
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
@@ -414,22 +425,35 @@ fun TitleComponent(
 }
 
 @Composable
-fun StatisticCard(tripsNumber: Int?, @StringRes label: Int) {
-    Card {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(2.dp)
-                .width(100.dp)
-                .height(50.dp)
-                .fillMaxSize(1f)
+fun StatisticCard(stats: List<Pair<Int?, String>>) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceAround,
+            modifier = Modifier.padding(8.dp).fillMaxWidth()
         ) {
-            Text(text = tripsNumber.toString(), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text(text = stringResource(id = label), fontSize = 12.sp)
+            stats.forEach { (number, label) ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = number.toString(),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = label,
+                        fontSize = 10.sp
+                    )
+                }
+            }
         }
     }
 }
+
 
 @Composable
 fun AboutMeComponent(bio: String?) {

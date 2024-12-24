@@ -2,6 +2,7 @@ package com.example.triplog.profile.presentation
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,7 +14,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -162,6 +165,7 @@ fun ProfileScreen(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileTopBar(viewModel: ProfileViewModel) {
     when (viewModel.profileSection) {
@@ -171,19 +175,35 @@ fun ProfileTopBar(viewModel: ProfileViewModel) {
                 navIcon = {},
                 icon = {
                     if (viewModel.isOwnProfile) {
-                        IconButton(onClick = {
-                            viewModel.getFriendsRequests()
-                            viewModel.profileSection =
-                                UserProfileSection.FriendsRequests
-                        }) {
-                            Icon(
-                                Icons.Filled.PersonAdd,
-                                contentDescription = null,
-                                modifier = Modifier.size(30.dp)
-                            )
+                        Box(
+                            contentAlignment = Alignment.TopEnd,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            IconButton(onClick = {
+                                viewModel.profileSection = UserProfileSection.FriendsRequests
+                            }) {
+                                Icon(
+                                    Icons.Filled.PersonAdd,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(30.dp)
+                                )
+                            }
+                            if (viewModel.friendsRequests.isNotEmpty()) {
+                                Badge(
+                                    modifier = Modifier.align(Alignment.BottomStart),
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                ) {
+                                    Text(
+                                        text = viewModel.friendsRequests.size.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                            }
                         }
                     }
                 }) { viewModel.isLogoutDialogVisible = true }
+
         }
 
         UserProfileSection.FriendsList -> {
@@ -220,7 +240,7 @@ fun ProfileBottomBar(navController: NavController, viewModel: ProfileViewModel) 
             navController.navigate(Screen.MainPageScreen.destination)
         },
         goToCreateTravel = {
-            navController.navigate(Screen.CreateTravelScreen.destination)
+            navController.navigate(Screen.TravelFormScreen.destination)
         })
 }
 

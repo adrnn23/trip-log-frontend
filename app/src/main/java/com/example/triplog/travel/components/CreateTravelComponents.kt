@@ -359,6 +359,7 @@ fun TravelPlacesList(
     viewModel: TravelFormViewModel,
     sharedTravelViewModel: SharedTravelViewModel
 ) {
+    val context = LocalContext.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
@@ -377,7 +378,9 @@ fun TravelPlacesList(
                     sharedTravelViewModel.setTempTravelDataEdit(travel)
                     PlaceCardInit(navController, place,
                         isOptionsVisible = true,
-                        onRemove = { viewModel.removePlaceWithLoading(place) },
+                        onRemove = {
+                            viewModel.removePlaceWithLoading(place, context)
+                        },
                         onEdit = {
                             val placeToEdit = PlaceData(
                                 place?.name,
