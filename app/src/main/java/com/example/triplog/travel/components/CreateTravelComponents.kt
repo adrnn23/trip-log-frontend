@@ -355,9 +355,7 @@ fun AddPlacesComponent(
 
 @Composable
 fun TravelPlacesList(
-    navController: NavController,
-    viewModel: TravelFormViewModel,
-    sharedTravelViewModel: SharedTravelViewModel
+    viewModel: TravelFormViewModel
 ) {
     val context = LocalContext.current
     Column(
@@ -374,9 +372,7 @@ fun TravelPlacesList(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(viewModel.travelPlaces) { place ->
-                    val travel = viewModel.prepareTempTravelDataToSharedVM()
-                    sharedTravelViewModel.setTempTravelDataEdit(travel)
-                    PlaceCardInit(navController, place,
+                    PlaceCardInit(place,
                         isOptionsVisible = true,
                         onRemove = {
                             viewModel.removePlaceWithLoading(place, context)

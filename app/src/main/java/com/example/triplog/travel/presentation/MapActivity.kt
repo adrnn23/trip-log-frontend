@@ -65,7 +65,7 @@ fun MapScreen(
     val points = mutableListOf<PlaceData>()
 
     points.addAll(
-        sharedTravelViewModel.tempTravelDataToEdit.places.mapNotNull { place -> place }
+        sharedTravelViewModel.tempTravelData.places.mapNotNull { place -> place }
     )
 
     DisposableEffect(mapView) {

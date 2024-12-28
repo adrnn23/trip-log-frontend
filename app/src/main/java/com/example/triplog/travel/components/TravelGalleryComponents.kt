@@ -164,7 +164,6 @@ fun PlacesListSection(places: List<PlaceData?>, navController: NavController) {
         ) {
             items(places) { place ->
                 PlaceCardInit(
-                    navController,
                     place = place,
                     onEdit = {},
                     onRemove = {},

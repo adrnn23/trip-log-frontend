@@ -29,9 +29,10 @@ import com.example.triplog.main.components.MainPageScreenComponent
 import com.example.triplog.main.navigation.ApplicationBottomBar
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.R
-import com.example.triplog.main.components.SearchBar
+import com.example.triplog.main.components.MainPageSearchBar
 import com.example.triplog.main.navigation.MainTopBar
 import com.example.triplog.main.navigation.SearchBottomBar
+import com.example.triplog.main.navigation.SearchTopBar
 import com.example.triplog.main.navigation.TopApplicationBar
 import com.example.triplog.main.presentation.sections.SearchSection
 import com.example.triplog.profile.presentation.FullScreenLoadingIndicator
@@ -151,7 +152,6 @@ fun MainPageContent(
     navController: NavController,
     sharedTravelViewModel: SharedTravelViewModel
 ) {
-
     when (viewModel.mainPageSection) {
         MainPageSection.Main -> {
             Column(
@@ -182,7 +182,7 @@ fun MainPageContent(
                 onDeleteClick = {},
                 onSeeMapClick = {
                     val travel = viewModel.prepareTempTravelDataToSharedVM()
-                    sharedTravelViewModel.setTempTravelDataEdit(travel)
+                    sharedTravelViewModel.setTravelData(travel)
                     navController.navigate(Screen.MapScreen.destination)
                 },
             )
@@ -234,9 +234,11 @@ fun MainPageTopBar(viewModel: MainPageViewModel) {
         }
 
         MainPageSection.SearchSection -> {
-            TopApplicationBar(title = { SearchBar(viewModel) }, onClick = {
-                viewModel.mainPageSection = MainPageSection.Main
-            })
+            SearchTopBar(
+                onClick = {
+                    viewModel.mainPageSection = MainPageSection.Main
+                }, search = { MainPageSearchBar(viewModel) }
+            )
         }
 
         MainPageSection.TravelPostOverviewSection -> {

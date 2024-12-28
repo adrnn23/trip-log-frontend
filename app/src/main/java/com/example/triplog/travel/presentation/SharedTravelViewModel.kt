@@ -4,19 +4,57 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.triplog.travel.data.PlaceData
 import com.example.triplog.travel.data.TravelData
+import com.mapbox.geojson.Point
+
+enum class PointType {
+    Travel, Place, None
+}
+
 
 class SharedTravelViewModel : ViewModel() {
     var isTravelToEdit by mutableStateOf(false)
         private set
-    var tempTravelDataToEdit by mutableStateOf(TravelData())
+    var tempTravelData by mutableStateOf(TravelData())
+    var tempPlaceData by mutableStateOf(PlaceData())
+    var tempPointType by mutableStateOf(PointType.None)
+    var editedPlaceIndex by mutableStateOf<Int?>(null)
 
-    fun setTempTravelDataEdit(data: TravelData) {
-        tempTravelDataToEdit = data.copy()
+    fun setTravelData(data: TravelData) {
+        tempTravelData = data.copy()
     }
 
-    fun clearTempTravelDataEdit(){
-        tempTravelDataToEdit = TravelData()
+    fun clearTravelData() {
+        tempTravelData = TravelData()
+    }
+
+    fun setPlaceData(data: PlaceData) {
+        tempPlaceData = data.copy()
+    }
+
+    fun clearPlaceData() {
+        tempPlaceData = PlaceData()
+    }
+
+    fun setPointType(type: PointType) {
+        tempPointType = type
+    }
+
+    fun clearPointType() {
+        tempPointType = PointType.None
+    }
+
+    fun setNewPointInTravelOrPlace(point: Point) {
+        when (tempPointType) {
+            PointType.Travel -> {
+                tempTravelData.point = point
+            }
+            PointType.Place -> {
+                tempPlaceData.point = point
+            }
+            else -> {}
+        }
     }
 
     fun setTravelEdit(toEdit: Boolean) {

@@ -35,6 +35,7 @@ sealed class ProfileState {
     data object Unauthenticated : ProfileState()
     data object Idle : ProfileState()
     data object Error : ProfileState()
+    data object LoadingProfileError : ProfileState()
     data object LoggedOut : ProfileState()
 }
 
@@ -149,6 +150,11 @@ class ProfileViewModel(
         responseHandler.showMessage(backendResponse)
     }
 
+    private fun processLoadingProfileErrorState(backendResponse: BackendResponse) {
+        profileState = ProfileState.LoadingProfileError
+        responseHandler.showMessage(backendResponse)
+    }
+
     /**
      * Function handleProfileState() sets the viewModel's flags based on the viewModel's profileState.
      */
@@ -158,6 +164,7 @@ class ProfileViewModel(
             ProfileState.Authenticated -> false
             ProfileState.Unauthenticated -> true
             ProfileState.LoggedOut -> true
+            ProfileState.LoadingProfileError -> true
             else -> false
         }
     }
@@ -184,6 +191,12 @@ class ProfileViewModel(
                 isBackendResponseVisible = false
                 responseHandler.clearMessage()
                 logoutProcess(navController = navController)
+            }
+
+            ProfileState.LoadingProfileError -> {
+                isBackendResponseVisible = false
+                responseHandler.clearMessage()
+                navController.navigate(Screen.MainPageScreen.destination)
             }
 
             else -> {
@@ -258,12 +271,12 @@ class ProfileViewModel(
                         processUnauthenticatedState(backendResponse)
                     } else {
                         val backendResponse = BackendResponse(message = result.message)
-                        processErrorState(backendResponse)
+                        processLoadingProfileErrorState(backendResponse)
                     }
                 }
             } catch (e: Exception) {
                 val backendResponse = BackendResponse(message = e.message)
-                processErrorState(backendResponse)
+                processLoadingProfileErrorState(backendResponse)
             }
             loadingState = LoadingState.Loaded
         }

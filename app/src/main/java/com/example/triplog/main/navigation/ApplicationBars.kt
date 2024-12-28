@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
@@ -145,6 +146,26 @@ fun TopApplicationBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchTopBar(
+    onClick: () -> Unit, search: @Composable () -> Unit
+) {
+    TopAppBar(
+        title = {},
+        actions = {
+            IconButton(onClick = { onClick() }) {
+                Icon(
+                    Icons.Outlined.ArrowBack,
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            search()
+        }
+    )
+}
+
 @Composable
 fun ButtonBottomBar(
     @StringRes buttonText: Int,
@@ -158,6 +179,41 @@ fun ButtonBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
+            EditButtonComponent(
+                buttonText,
+                MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.fillMaxWidth(0.9f)
+            ) {
+                onClick()
+            }
+        }
+    }
+    )
+}
+
+@Composable
+fun MapViewBottomBar(
+    @StringRes buttonText: Int,
+    onBackPressed: () -> Unit,
+    onClick: () -> Unit
+) {
+    BottomAppBar(actions = {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround,
+
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            IconButton(
+                onClick = onBackPressed
+            ) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier.size(30.dp)
+                )
+            }
             EditButtonComponent(
                 buttonText,
                 MaterialTheme.colorScheme.primaryContainer,

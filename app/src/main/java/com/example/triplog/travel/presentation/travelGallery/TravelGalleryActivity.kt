@@ -129,7 +129,7 @@ fun TravelGalleryContent(
                 isOptionsVisible = true,
                 onEditClick = {
                     val travel = viewModel.prepareTempTravelDataToSharedVM()
-                    sharedTravelViewModel.setTempTravelDataEdit(travel)
+                    sharedTravelViewModel.setTravelData(travel)
                     sharedTravelViewModel.setTravelEdit(true)
                     viewModel.navigateToEditTravel(navController)
                 },
@@ -138,7 +138,7 @@ fun TravelGalleryContent(
                 },
                 onSeeMapClick = {
                     val travel = viewModel.prepareTempTravelDataToSharedVM()
-                    sharedTravelViewModel.setTempTravelDataEdit(travel)
+                    sharedTravelViewModel.setTravelData(travel)
                     navController.navigate(Screen.MapScreen.destination)
                 }
             )

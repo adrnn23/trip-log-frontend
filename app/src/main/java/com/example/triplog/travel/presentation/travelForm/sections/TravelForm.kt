@@ -48,6 +48,7 @@ import com.example.triplog.travel.components.TravelPlaceLocalizationComponent
 import com.example.triplog.travel.components.AddPlacesComponent
 import com.example.triplog.travel.components.TravelPlacesList
 import com.example.triplog.travel.data.TravelFormTabs
+import com.example.triplog.travel.presentation.PointType
 import com.example.triplog.travel.presentation.SharedTravelViewModel
 import com.example.triplog.travel.presentation.travelForm.TravelFormSection
 import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
@@ -93,11 +94,7 @@ fun TravelFormMainSection(
                     sharedTravelViewModel = sharedTravelViewModel
                 )
 
-                1 -> TravelPlacesList(
-                    navController,
-                    viewModel = viewModel,
-                    sharedTravelViewModel
-                )
+                1 -> TravelPlacesList(viewModel = viewModel)
             }
         }
 
@@ -156,10 +153,14 @@ fun TravelFormSection(
             TravelPlaceLocalizationComponent(
                 pointTemp = viewModel.travel.point,
                 onClick = {
-                    viewModel.travel.point?.let { viewModel.travelPointTemp = it }
-                    viewModel.section = TravelFormSection.EditTravelLocalization
+                    val travel = viewModel.prepareTempTravelDataToSharedVM()
+                    val place = viewModel.prepareTempPlaceDataToSharedVM()
+                    sharedTravelViewModel.setTravelData(travel)
+                    sharedTravelViewModel.setPlaceData(place)
+                    sharedTravelViewModel.tempPointType = PointType.Travel
+                    navController.navigate(Screen.SearchMapScreen.destination)
                 }
-                )
+            )
             Spacer(modifier = Modifier.height(10.dp))
         }
 
@@ -189,7 +190,7 @@ fun TravelFormSection(
                     onClick = {
                         viewModel.isCreateEditTravelDialogVisible = false
                         navController.navigate(Screen.MainPageScreen.destination)
-                        sharedTravelViewModel.clearTempTravelDataEdit()
+                        sharedTravelViewModel.clearTravelData()
                         sharedTravelViewModel.setTravelEdit(false)
                     },
                     shape = RoundedCornerShape(5.dp),
@@ -216,7 +217,9 @@ fun TravelFormSection(
 @Composable
 fun PlaceFormSection(
     innerpadding: PaddingValues,
-    viewModel: TravelFormViewModel
+    viewModel: TravelFormViewModel,
+    sharedTravelViewModel: SharedTravelViewModel,
+    navController: NavController
 ) {
     LazyColumn(
         modifier = Modifier
@@ -250,8 +253,13 @@ fun PlaceFormSection(
             TravelPlaceLocalizationComponent(
                 pointTemp = viewModel.place.point,
                 onClick = {
-                    viewModel.place.point?.let { viewModel.placePointTemp = it }
-                    viewModel.section = TravelFormSection.EditPlaceLocalization
+                    val travel = viewModel.prepareTempTravelDataToSharedVM()
+                    val place = viewModel.prepareTempPlaceDataToSharedVM()
+                    sharedTravelViewModel.setTravelData(travel)
+                    sharedTravelViewModel.setPlaceData(place)
+                    sharedTravelViewModel.tempPointType = PointType.Place
+                    sharedTravelViewModel.editedPlaceIndex = viewModel.editedPlaceIndex
+                    navController.navigate(Screen.SearchMapScreen.destination)
                 })
             Spacer(modifier = Modifier.height(10.dp))
         }

@@ -33,8 +33,6 @@ sealed class TravelFormSection {
     data object PlaceForm : TravelFormSection()
     data object EditTravelInformation : TravelFormSection()
     data object EditPlaceInformation : TravelFormSection()
-    data object EditTravelLocalization : TravelFormSection()
-    data object EditPlaceLocalization : TravelFormSection()
 }
 
 sealed class CreateTravelState {
@@ -88,11 +86,25 @@ class TravelFormViewModel(
         travelPlaces = travelToEdit.places.toMutableList()
     }
 
+    fun setPlaceToEdit(placeToEdit: PlaceData) {
+        place.name = placeToEdit.name
+        place.description = placeToEdit.description
+        place.point = placeToEdit.point
+        place.category = placeToEdit.category
+        placeImage = placeToEdit.image
+    }
+
     fun prepareTempTravelDataToSharedVM(): TravelData {
         val travel = travel
         travel.places = travelPlaces
         travel.image = travelImage
         return travel
+    }
+
+    fun prepareTempPlaceDataToSharedVM(): PlaceData {
+        val place = place
+        place.image = placeImage
+        return place
     }
 
     var isDeleting by mutableStateOf(false)

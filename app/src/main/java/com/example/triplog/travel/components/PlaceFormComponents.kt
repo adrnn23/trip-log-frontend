@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Map
@@ -43,11 +44,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,17 +66,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.profile.components.ChangeButton
 import com.example.triplog.travel.data.PlaceData
+import com.example.triplog.travel.presentation.SearchMapViewModel
 import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
 import com.mapbox.geojson.Point
 
@@ -373,7 +373,6 @@ fun TravelPlaceLocalizationComponent(
 
 @Composable
 fun PlaceCardInit(
-    navController: NavController,
     place: PlaceData?,
     isOptionsVisible: Boolean,
     onRemove: () -> Unit,
@@ -741,52 +740,46 @@ fun PlacePhotoComponent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalizationSearchBar(
     mapboxAccessToken: String,
-    viewModel: TravelFormViewModel,
-    label: String
+    viewModel: SearchMapViewModel,
+    modifier: Modifier
 ) {
     var query by remember { mutableStateOf("") }
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
+    var isActive by remember { mutableStateOf(false) }
+
+    SearchBar(
+        query = query,
+        onQueryChange = { query = it },
+        onSearch = {
+            viewModel.searchPlace(query, mapboxAccessToken)
+            isActive = false
+        },
+        active = isActive,
+        onActiveChange = { isActive = false },
+        placeholder = { Text("Search") },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search Icon"
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { query = "" }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear Query"
+                    )
+                }
+            }
+        },
+        modifier = modifier
             .fillMaxWidth()
-            .height(68.dp)
             .padding(horizontal = 8.dp)
     ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            label = { Text("Search") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search Icon",
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            shape = RoundedCornerShape(16.dp),
-            maxLines = 1,
-            textStyle = TextStyle(fontSize = 16.sp),
-            modifier = Modifier
-                .weight(1f)
-                .height(60.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        OutlinedButton(
-            onClick = { viewModel.searchPlace(query, mapboxAccessToken, label) },
-            modifier = Modifier.height(42.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(
-                Icons.Default.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier
-                    .size(20.dp)
-            )
-        }
+        Text("Start typing to search...")
     }
 }

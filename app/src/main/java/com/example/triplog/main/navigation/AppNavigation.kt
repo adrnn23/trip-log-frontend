@@ -14,6 +14,7 @@ import com.example.triplog.main.presentation.MainPageScreen
 import com.example.triplog.profile.presentation.EditProfileScreen
 import com.example.triplog.profile.presentation.ProfileScreen
 import com.example.triplog.travel.presentation.MapScreen
+import com.example.triplog.travel.presentation.SearchMapScreen
 import com.example.triplog.travel.presentation.SharedTravelViewModel
 import com.example.triplog.travel.presentation.travelForm.TravelFormScreen
 import com.example.triplog.travel.presentation.travelGallery.TravelGalleryScreen
@@ -28,6 +29,7 @@ sealed class Screen(val destination: String) {
     data object MainPageScreen : Screen("MainPageScreen")
     data object TravelGalleryScreen : Screen("TravelGalleryScreen")
     data object MapScreen : Screen("MapScreen")
+    data object SearchMapScreen : Screen("SearchMapScreen")
 }
 
 @Composable
@@ -66,7 +68,10 @@ fun AppNavigation() {
             EditProfileScreen(navController = navController)
         }
         composable(route = Screen.MainPageScreen.destination) {
-            MainPageScreen(navController = navController, sharedTravelViewModel=sharedTravelViewModel)
+            MainPageScreen(
+                navController = navController,
+                sharedTravelViewModel = sharedTravelViewModel
+            )
         }
         composable(route = Screen.TravelFormScreen.destination) {
             TravelFormScreen(navController = navController, sharedTravelViewModel)
@@ -80,6 +85,14 @@ fun AppNavigation() {
             MapScreen(
                 sharedTravelViewModel = sharedTravelViewModel,
                 onBackPressed = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.SearchMapScreen.destination
+        ) {
+            SearchMapScreen(
+                sharedTravelViewModel = sharedTravelViewModel,
+                navController = navController
             )
         }
     }
