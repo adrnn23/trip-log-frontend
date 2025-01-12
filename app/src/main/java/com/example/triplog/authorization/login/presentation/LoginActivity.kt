@@ -20,11 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.ButtonDivider
@@ -36,10 +36,8 @@ import com.example.triplog.authorization.registration.components.EmailInput
 import com.example.triplog.authorization.registration.components.PasswordInput
 import com.example.triplog.main.navigation.Screen
 
-
 @Composable
-fun LoginScreen(navController: NavController) {
-    val viewModel: LoginViewModel = viewModel(factory = LoginViewModel.Factory)
+fun LoginScreen(viewModel: LoginViewModel, navController: NavController) {
 
     LaunchedEffect(viewModel.loginState) {
         viewModel.handleLoginState(navController)
@@ -108,6 +106,7 @@ fun LoginScreen(navController: NavController) {
                 fontSize = 32.sp,
                 modifier = Modifier
                     .padding(top = 10.dp, bottom = 10.dp)
+                    .testTag("loginText")
             )
 
             EmailInput(
@@ -116,6 +115,7 @@ fun LoginScreen(navController: NavController) {
                 onValueChanged = { viewModel.email = it },
                 enabled = true,
                 modifier = Modifier
+                    .testTag("emailInput")
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
@@ -129,6 +129,7 @@ fun LoginScreen(navController: NavController) {
                 value = viewModel.password,
                 onValueChanged = { viewModel.password = it },
                 modifier = Modifier
+                    .testTag("passwordInput")
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
@@ -147,14 +148,18 @@ fun LoginScreen(navController: NavController) {
             LoginActivityButton(
                 R.string.login,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ) { viewModel.login() }
+                modifier = Modifier.testTag("loginButton"),
+                onClick = { viewModel.login() }
+            )
 
             ButtonDivider()
 
             LoginActivityButton(
                 R.string.createNewAccount,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            ) { navController.navigate(Screen.RegistrationScreen.destination) }
+                modifier = Modifier.testTag("createAccountButton"),
+                onClick = { navController.navigate(Screen.RegistrationScreen.destination) }
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 

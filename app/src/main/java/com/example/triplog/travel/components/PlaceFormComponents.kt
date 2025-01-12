@@ -70,14 +70,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.profile.components.ChangeButton
+import com.example.triplog.profile.components.uriToMultipart
 import com.example.triplog.travel.data.PlaceData
 import com.example.triplog.travel.presentation.SearchMapViewModel
 import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
-import com.mapbox.geojson.Point
 
 @Composable
 fun PlaceInformationComponent(
@@ -106,7 +107,10 @@ fun PlaceInformationComponent(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        Text(text = viewModel.place.name ?: "-----", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = viewModel.place.name ?: stringResource(R.string.notSet),
+            style = MaterialTheme.typography.bodyMedium
+        )
 
         Text(
             stringResource(R.string.placeDescription),
@@ -114,7 +118,7 @@ fun PlaceInformationComponent(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = viewModel.place.description ?: "-----",
+            text = viewModel.place.description ?: stringResource(R.string.notSet),
             style = MaterialTheme.typography.bodyMedium
         )
 
@@ -124,7 +128,7 @@ fun PlaceInformationComponent(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = viewModel.place.category ?: "-----",
+            text = viewModel.place.category ?: stringResource(R.string.notSet),
             style = MaterialTheme.typography.bodyMedium
         )
 
@@ -147,7 +151,7 @@ fun EditPlaceNameComponent(viewModel: TravelFormViewModel) {
     ) {
         TravelPlaceNameInput(
             label = R.string.placeName,
-            value = viewModel.placeNameTemp,
+            value = viewModel.placeNameTemp ?: "",
             onValueChanged = { viewModel.placeNameTemp = it },
             imageVector = Icons.Default.Place,
             modifier = Modifier
@@ -170,7 +174,7 @@ fun EditPlaceDescriptionComponent(viewModel: TravelFormViewModel) {
         TravelPlaceDescriptionInput(
             R.string.travelDescription,
             imageVector = Icons.Default.Description,
-            viewModel.placeDescriptionTemp,
+            viewModel.placeDescriptionTemp ?: "",
             enabled = enabled,
             characterLimit = 256,
             modifier = Modifier
@@ -308,12 +312,9 @@ fun EditPlaceCategoryComponent(viewModel: TravelFormViewModel) {
 
 @Composable
 fun TravelPlaceLocalizationComponent(
-    pointTemp: Point?,
+    mapUrl: String?,
     onClick: () -> Unit
 ) {
-    val darkMarker = "pin-s+555555(${pointTemp?.coordinates()?.get(0)},${
-        pointTemp?.coordinates()?.get(1)
-    })"
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -334,16 +335,11 @@ fun TravelPlaceLocalizationComponent(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            if (pointTemp != null) {
-                StaticMapView(
-                    longitude = pointTemp.longitude(),
-                    latitude = pointTemp.latitude(),
-                    marker = darkMarker,
-                    accessToken = stringResource(R.string.mapbox_access_token)
-                )
+            if (mapUrl != null) {
+                StaticMapView(mapUrl = mapUrl)
             } else {
                 Text(
-                    text = "No location set",
+                    text = stringResource(R.string.noLocationSet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -414,27 +410,25 @@ fun PlaceCardFront(
     onRemove: () -> Unit
 ) {
     var showImagePreview by remember { mutableStateOf(false) }
-
     if (showImagePreview) {
         Dialog(onDismissRequest = { showImagePreview = false }) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.8f))
+                    .background(Color.Black.copy(alpha = 1f))
             ) {
-                place?.image?.let { imageUrl ->
-                    val painter = rememberAsyncImagePainter(
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(data = imageUrl)
-                            .build()
-                    )
-                    Image(
-                        painter = painter,
+                if (place?.imageUrl?.isNotEmpty() == true) {
+                    AsyncImage(
+                        model = place.imageUrl,
                         contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentScale = ContentScale.Fit
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.noPhotoAvailable),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -444,6 +438,7 @@ fun PlaceCardFront(
     Card(
         shape = RoundedCornerShape(4.dp),
         elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
@@ -454,19 +449,20 @@ fun PlaceCardFront(
                     .fillMaxWidth()
                     .aspectRatio(16 / 9f)
             ) {
-                place?.image?.let { imageUrl ->
-                    val painter = rememberAsyncImagePainter(
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(data = imageUrl)
-                            .build()
-                    )
-                    Image(
-                        painter = painter,
+                if (place?.imageUrl?.isNotEmpty() == true) {
+                    AsyncImage(
+                        model = place.imageUrl,
                         contentDescription = null,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable { showImagePreview = true },
-                        contentScale = ContentScale.Crop
+                        )
+                } else {
+                    Text(
+                        text = stringResource(R.string.noPhotoAvailable),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
                 Box(
@@ -520,15 +516,7 @@ fun PlaceCardFront(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                place?.category?.let {
-                    Text(
-                        text = it,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                place?.category?.let { PlaceCategoryCard(it) }
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Default.Map,
@@ -537,7 +525,12 @@ fun PlaceCardFront(
                     modifier = Modifier.clickable { onClick() }
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                thickness = 1.dp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             place?.description?.let {
                 Text(
                     text = it,
@@ -563,6 +556,7 @@ fun PlaceCardBack(
     Card(
         shape = RoundedCornerShape(4.dp),
         elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
@@ -574,7 +568,7 @@ fun PlaceCardBack(
                     .aspectRatio(16 / 9f)
             ) {
                 if (place?.point != null) {
-                    StaticMapView(
+                    PlaceCardStaticMapView(
                         longitude = place.point?.longitude(),
                         latitude = place.point?.latitude(),
                         marker = darkMarker,
@@ -582,7 +576,7 @@ fun PlaceCardBack(
                     )
                 } else {
                     Text(
-                        "No location available",
+                        stringResource(R.string.noLocationAvailable),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray,
                         modifier = Modifier.align(Alignment.Center)
@@ -596,15 +590,7 @@ fun PlaceCardBack(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    place?.category?.let {
-                        Text(
-                            text = it,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    place?.category?.let { PlaceCategoryCard(it) }
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Default.Photo,
@@ -613,7 +599,14 @@ fun PlaceCardBack(
                         modifier = Modifier.clickable { onClick() }
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Divider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    thickness = 1.dp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
                 place?.description?.let {
                     Text(
                         text = it,
@@ -630,10 +623,15 @@ fun PlaceCardBack(
 fun PlacePhotoComponent(
     viewModel: TravelFormViewModel
 ) {
+    val context = LocalContext.current
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            viewModel.placeImage = uri
+            uri?.let {
+                viewModel.placeImage = uri
+                viewModel.place.imagePart = uriToMultipart(context, uri, "image")
+            }
         }
+
     val showPhoto = remember { mutableStateOf(false) }
 
     Column(
@@ -659,9 +657,9 @@ fun PlacePhotoComponent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { showPhoto.value = true }
                 .height(200.dp)
                 .clip(RoundedCornerShape(10.dp))
+                .clickable { showPhoto.value = true }
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
@@ -673,6 +671,14 @@ fun PlacePhotoComponent(
                 )
                 Image(
                     painter = painter,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                )
+            } else if (viewModel.place.imageUrl != null) {
+                AsyncImage(
+                    model = viewModel.place.imageUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -747,8 +753,8 @@ fun LocalizationSearchBar(
     viewModel: SearchMapViewModel,
     modifier: Modifier
 ) {
-    var query by remember { mutableStateOf("") }
     var isActive by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
 
     SearchBar(
         query = query,
@@ -781,5 +787,34 @@ fun LocalizationSearchBar(
             .padding(horizontal = 8.dp)
     ) {
         Text("Start typing to search...")
+    }
+}
+
+@Composable
+fun PlaceCategoryCard(category: String) {
+    Card(
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                        )
+                    )
+                )
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = category,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondary
+            )
+        }
     }
 }

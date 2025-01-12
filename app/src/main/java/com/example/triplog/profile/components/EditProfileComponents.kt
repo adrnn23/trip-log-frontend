@@ -1,6 +1,7 @@
 package com.example.triplog.profile.components
 
 import android.content.Context
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -23,9 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
@@ -81,6 +80,10 @@ import com.example.triplog.profile.data.LinkData
 import com.example.triplog.profile.presentation.EditProfileViewModel
 import com.example.triplog.profile.presentation.EditUserProfileSection
 import com.example.triplog.travel.components.ButtonComponent
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 
 fun showToast(context: Context, @StringRes textId: Int) {
     Toast.makeText(
@@ -177,12 +180,39 @@ fun LinkInput(
     )
 }
 
+fun uriToMultipart(context: Context, uri: Uri, fieldName: String): MultipartBody.Part? {
+    return try {
+        val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+
+        val uniqueFileName =
+            "temp_image_${System.currentTimeMillis()}"
+        val tempFile = File(context.cacheDir, uniqueFileName)
+
+        tempFile.outputStream().use { outputStream ->
+            inputStream.copyTo(outputStream)
+        }
+
+        val requestBody = tempFile.asRequestBody(mimeType.toMediaTypeOrNull())
+        MultipartBody.Part.createFormData(fieldName, tempFile.name, requestBody)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
+
 @Composable
 fun EditAvatarComponent(viewModel: EditProfileViewModel) {
+    val context = LocalContext.current
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            viewModel.avatar = uri
+            uri?.let {
+                viewModel.avatar = uri
+                viewModel.avatarPart = uriToMultipart(context, uri, "avatar")
+            }
         }
+
     val showPhoto = remember { mutableStateOf(false) }
 
     Column(
@@ -203,7 +233,6 @@ fun EditAvatarComponent(viewModel: EditProfileViewModel) {
             fontWeight = FontWeight.Bold
         )
         Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -223,12 +252,20 @@ fun EditAvatarComponent(viewModel: EditProfileViewModel) {
                     painter = painter,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                )
+            } else if (viewModel.editProfile.avatarUrl != null) {
+                AsyncImage(
+                    model = viewModel.editProfile.avatarUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
                 Text(
-                    text = stringResource(R.string.noPhotoSelected),
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = stringResource(R.string.noPhotoAvailable),
+                    style = MaterialTheme.typography.headlineLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
@@ -423,28 +460,6 @@ fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
         )
         Divider(modifier = Modifier.fillMaxWidth(), color = Color.Gray, thickness = 1.dp)
 
-        if (viewModel.travelPreferencesList.isNotEmpty()) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(24.dp, 108.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(viewModel.travelPreferencesList.filter { it!!.isSelected }) { item ->
-                    if (item != null) {
-                        TravelPreferenceCard(item)
-                    }
-                }
-            }
-        } else {
-            Text(
-                text = stringResource(R.string.addTravelPreferences),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
         ButtonComponent(
             R.string.editPreferences,
             modifier = Modifier.width(220.dp),
@@ -460,7 +475,12 @@ fun EditTravelPreferencesComponent(viewModel: EditProfileViewModel) {
 }
 
 @Composable
-fun ChangeButton(modifier: Modifier, icon: ImageVector, size: Int = 28, changeAction: () -> Unit) {
+fun ChangeButton(
+    modifier: Modifier,
+    icon: ImageVector,
+    size: Int = 28,
+    changeAction: () -> Unit
+) {
     Icon(
         imageVector = icon,
         contentDescription = null,
@@ -843,21 +863,33 @@ fun EditBasicInformation(viewModel: EditProfileViewModel, onClick: () -> Unit) {
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        Text(text = viewModel.editProfile.name ?: "", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = viewModel.editProfile.name ?: "",
+            style = MaterialTheme.typography.bodyLarge
+        )
 
         Text(
             stringResource(R.string.email),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        Text(text = viewModel.editProfile.email ?: "", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = viewModel.editProfile.email ?: stringResource(R.string.profileWithoutBiography),
+            style = MaterialTheme.typography.bodyLarge
+        )
 
         Text(
             stringResource(R.string.biography),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        Text(text = viewModel.editProfile.bio ?: "", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = if (viewModel.editProfile.bio.isNullOrBlank()) stringResource(R.string.profileWithoutBiography) else viewModel.editProfile.bio!!,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (viewModel.editProfile.bio.isNullOrBlank()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f
+            ) else MaterialTheme.colorScheme.onSurface.copy(alpha = 1f)
+
+        )
 
         ButtonComponent(
             R.string.editBasicInformation,

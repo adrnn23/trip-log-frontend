@@ -5,7 +5,7 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class LoginResult(
-    val resultCode: Int?,
+    var resultCode: Int?,
     @Json(name = "token")
     val token: String?,
     @Json(name = "message")

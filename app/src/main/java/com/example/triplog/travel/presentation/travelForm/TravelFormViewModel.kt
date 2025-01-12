@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.BackendResponse
+import com.example.triplog.main.LoadingState
 import com.example.triplog.main.ResponseHandler
 import com.example.triplog.main.SessionManager
 import com.example.triplog.main.TripLogApplication
@@ -24,9 +25,12 @@ import com.example.triplog.profile.components.showToast
 import com.example.triplog.travel.data.PlaceCategoryData
 import com.example.triplog.travel.data.PlaceData
 import com.example.triplog.travel.data.TravelData
-import com.mapbox.geojson.Point
+import com.example.triplog.travel.data.TravelRequest
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 sealed class TravelFormSection {
     data object Main : TravelFormSection()
@@ -35,11 +39,12 @@ sealed class TravelFormSection {
     data object EditPlaceInformation : TravelFormSection()
 }
 
-sealed class CreateTravelState {
-    data object Authenticated : CreateTravelState()
-    data object Unauthenticated : CreateTravelState()
-    data object Idle : CreateTravelState()
-    data object Error : CreateTravelState()
+sealed class TravelFormState {
+    data object Authenticated : TravelFormState()
+    data object Unauthenticated : TravelFormState()
+    data object Idle : TravelFormState()
+    data object Error : TravelFormState()
+    data object TravelSuccess : TravelFormState()
 }
 
 @SuppressLint("MutableCollectionMutableState")
@@ -50,29 +55,28 @@ class TravelFormViewModel(
     val responseHandler: ResponseHandler
 ) : ViewModel() {
 
-    var createTravelState by mutableStateOf<CreateTravelState>(CreateTravelState.Idle)
-
+    var travelFormState by mutableStateOf<TravelFormState>(TravelFormState.Idle)
     var travel by mutableStateOf(TravelData())
-    var travelNameTemp by mutableStateOf("")
-    var travelDescriptionTemp by mutableStateOf("")
+    var travelNameTemp by mutableStateOf<String?>(null)
+    var travelDescriptionTemp by mutableStateOf<String?>(null)
     var travelImage by mutableStateOf<Uri?>(null)
-    var travelPointTemp by mutableStateOf<Point?>(null)
     var travelPlaces: MutableList<PlaceData?> = emptyList<PlaceData?>().toMutableList()
+    var travelStaticMapUrl by mutableStateOf<String?>(null)
 
     var place by mutableStateOf(PlaceData())
-    var placeNameTemp by mutableStateOf("")
-    var placeDescriptionTemp by mutableStateOf("")
-    var placePointTemp by mutableStateOf<Point?>(null)
+    var placeNameTemp by mutableStateOf<String?>(null)
+    var placeDescriptionTemp by mutableStateOf<String?>(null)
     var placeImage by mutableStateOf<Uri?>(null)
-
+    var placeStaticMapUrl by mutableStateOf<String?>(null)
     var placeCategoriesList by mutableStateOf(mutableListOf<PlaceCategoryData?>())
+    private var placeCategoriesWithIdList by mutableStateOf(mutableListOf<Pair<Int, String>>())
 
     var section by mutableStateOf<TravelFormSection>(TravelFormSection.Main)
     var isCreateEditTravelDialogVisible by mutableStateOf(false)
     var isBackendResponseVisible by mutableStateOf(false)
     var isProgressIndicatorVisible by mutableStateOf(false)
+    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
     var editedPlaceIndex by mutableStateOf<Int?>(null)
-
     var editScreen by mutableStateOf(false)
 
     fun setTravelToEdit(travelToEdit: TravelData) {
@@ -84,6 +88,8 @@ class TravelFormViewModel(
         travel.favourite = travelToEdit.favourite
         travelImage = travelToEdit.image
         travelPlaces = travelToEdit.places.toMutableList()
+        travel.id = travelToEdit.id
+        travel.imageUrl = travelToEdit.imageUrl
     }
 
     fun setPlaceToEdit(placeToEdit: PlaceData) {
@@ -92,6 +98,7 @@ class TravelFormViewModel(
         place.point = placeToEdit.point
         place.category = placeToEdit.category
         placeImage = placeToEdit.image
+        place.id = placeToEdit.id
     }
 
     fun prepareTempTravelDataToSharedVM(): TravelData {
@@ -110,12 +117,208 @@ class TravelFormViewModel(
     var isDeleting by mutableStateOf(false)
     fun removePlaceWithLoading(place: PlaceData?, context: Context) {
         isDeleting = true
-        travelPlaces.remove(place)
+        place?.let { travelPlaces.remove(it) }
         viewModelScope.launch {
             delay(200)
             isDeleting = false
         }
+        this.place = PlaceData()
         showToast(context, R.string.placeDeleted)
+    }
+
+
+    fun getStaticMap(label: String, accessToken: String) {
+        viewModelScope.launch {
+            try {
+                when (label) {
+                    "Travel" -> {
+                        val darkMarker = "pin-s+555555(${travel.point?.coordinates()?.get(0)},${
+                            travel.point?.coordinates()?.get(1)
+                        })"
+                        if (travel.point != null) {
+                            travelStaticMapUrl =
+                                mapboxClient.getStaticMapUrl(
+                                    travel.point!!.longitude(),
+                                    travel.point!!.latitude(),
+                                    marker = darkMarker,
+                                    accessToken = accessToken
+                                )
+                        }
+                    }
+
+                    "Place" -> {
+                        val darkMarker = "pin-s+555555(${place.point?.coordinates()?.get(0)},${
+                            place.point?.coordinates()?.get(1)
+                        })"
+                        placeStaticMapUrl =
+                            mapboxClient.getStaticMapUrl(
+                                place.point!!.longitude(),
+                                place.point!!.latitude(),
+                                marker = darkMarker,
+                                accessToken = accessToken
+                            )
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun addTravel() {
+        loadingState = LoadingState.Loading
+        val token = sessionManager.getToken()
+        viewModelScope.launch {
+            try {
+                val request = TravelRequest(
+                    name = travel.name,
+                    description = travel.description,
+                    from = travel.startDate,
+                    to = travel.endDate,
+                    longitude = travel.point?.longitude(),
+                    latitude = travel.point?.latitude(),
+                    places = toTravelRequestPlaceList(travelPlaces, placeCategoriesWithIdList)
+                )
+                val result = repository.createTravel(token, request)
+                var backendResponse = BackendResponse()
+                processAuthenticatedState(backendResponse)
+
+                if (result != null) {
+                    if (result.resultCode == 200 && (result.id != null)) {
+                        travel.id = result.id
+                        updateImage("App\\Models\\Travel", travel.id!!, travel.imagePart)
+                        travelPlaces.forEachIndexed { index, placeData ->
+                            placeData?.id = result.places?.get(index)?.id
+                            updateImage("App\\Models\\Place", placeData?.id!!, placeData.imagePart)
+                        }
+                    } else if (result.resultCode == 401 && result.message != null) {
+                        backendResponse = BackendResponse(message = result.message)
+                        processUnauthenticatedState(backendResponse)
+                    } else {
+                        backendResponse =
+                            BackendResponse(
+                                message = result.message, errors = listOfNotNull(
+                                    result.errors?.name?.joinToString(separator = ", "),
+                                    result.errors?.from?.joinToString(separator = ", ")
+                                )
+                            )
+                        processErrorState(backendResponse)
+                    }
+                }
+            } catch (e: Exception) {
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
+            }
+            loadingState = LoadingState.Loaded
+        }
+    }
+
+    private suspend fun updateImage(type: String, id: Int, image: MultipartBody.Part?) {
+        val messagePart =
+            if (!editScreen) "Travel created successfully." else "Travel edited successfully."
+        val token = sessionManager.getToken()
+        viewModelScope.launch {
+            try {
+                val imageableType = type.toRequestBody("text/plain".toMediaTypeOrNull())
+                val imageableId =
+                    id.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val result = repository.updateImage(token, imageableType, imageableId, image)
+                if (result != null) {
+                    if (result.resultCode == 200 && (result.url != null)) {
+                        val backendResponse =
+                            BackendResponse(message = messagePart)
+                        processTravelSuccess(backendResponse)
+                    } else if (result.resultCode == 401 && result.message != null) {
+                        val backendResponse =
+                            BackendResponse(message = messagePart + " " + result.message)
+                        processUnauthenticatedState(backendResponse)
+                    } else {
+                        val backendResponse = BackendResponse(
+                            message = messagePart + " " + result.message,
+                            errors = listOfNotNull(result.errors?.image?.joinToString(separator = ", "))
+                        )
+                        processErrorState(backendResponse)
+                    }
+                }
+            } catch (e: Exception) {
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
+            }
+        }
+    }
+
+
+    private fun toTravelRequestPlaceList(
+        places: MutableList<PlaceData?>, categories: List<Pair<Int, String>>
+    ): List<TravelRequest.Place?> {
+        return places.map { place ->
+            place?.let {
+                val categoryId =
+                    categories.find { category -> category.second == it.category }?.first ?: 1
+                TravelRequest.Place(
+                    id = it.id,
+                    name = it.name,
+                    description = it.description,
+                    categoryId = categoryId,
+                    longitude = it.point?.longitude(),
+                    latitude = it.point?.latitude()
+                )
+            }
+        }
+    }
+
+    fun editTravel() {
+        loadingState = LoadingState.Loading
+        val token = sessionManager.getToken()
+        viewModelScope.launch {
+            try {
+                val request = TravelRequest(
+                    name = travel.name,
+                    description = travel.description,
+                    from = travel.startDate,
+                    to = travel.endDate,
+                    longitude = travel.point?.longitude(),
+                    latitude = travel.point?.latitude(),
+                    places = toTravelRequestPlaceList(travelPlaces, placeCategoriesWithIdList)
+                )
+                val result = travel.id?.let { repository.updateTravel(token, it, request) }
+                if (result != null) {
+                    if (result.resultCode == 200 && (result.id != null)) {
+                        travel.id = result.id
+                        if (travel.imagePart != null) {
+                            updateImage("App\\Models\\Travel", travel.id!!, travel.imagePart)
+                        }
+                        travelPlaces.forEachIndexed { index, placeData ->
+                            placeData?.id = result.places?.get(index)?.id
+                            if (placeData?.imagePart != null) {
+                                updateImage(
+                                    "App\\Models\\Place",
+                                    placeData.id!!,
+                                    placeData.imagePart
+                                )
+                            }
+                        }
+                        val backendResponse = BackendResponse()
+                        processAuthenticatedState(backendResponse)
+                    } else if (result.resultCode == 401 && result.message != null) {
+                        val backendResponse = BackendResponse(message = result.message)
+                        processUnauthenticatedState(backendResponse)
+                    } else {
+                        val backendResponse =
+                            BackendResponse(
+                                message = result.message, errors = listOfNotNull(
+                                    result.errors?.name?.joinToString(separator = ", "),
+                                    result.errors?.from?.joinToString(separator = ", ")
+                                )
+                            )
+                        processErrorState(backendResponse)
+                    }
+                }
+            } catch (e: Exception) {
+                val backendResponse = BackendResponse(message = e.message)
+                processErrorState(backendResponse)
+            }
+            loadingState = LoadingState.Loaded
+        }
     }
 
     companion object {
@@ -143,55 +346,67 @@ class TravelFormViewModel(
      * - setting the profile state in viewModel.
      */
     private fun processUnauthenticatedState(backendResponse: BackendResponse) {
-        createTravelState = CreateTravelState.Unauthenticated
+        travelFormState = TravelFormState.Unauthenticated
         responseHandler.showMessage(backendResponse)
     }
 
     private fun processErrorState(backendResponse: BackendResponse) {
-        createTravelState = CreateTravelState.Error
+        travelFormState = TravelFormState.Error
         responseHandler.showMessage(backendResponse)
     }
 
     private fun processAuthenticatedState(backendResponse: BackendResponse) {
-        createTravelState = CreateTravelState.Authenticated
+        travelFormState = TravelFormState.Authenticated
+        responseHandler.showMessage(backendResponse)
+    }
+
+    private fun processTravelSuccess(backendResponse: BackendResponse) {
+        travelFormState = TravelFormState.TravelSuccess
         responseHandler.showMessage(backendResponse)
     }
 
     /**
-     * Function handleProfileState() sets the viewModel's flags based on the viewModel's profileState.
+     * Function handleTravelFormState() sets the viewModel's flags based on the viewModel's profileState.
      */
-    fun handleCreateState() {
-        isBackendResponseVisible = when (createTravelState) {
-            CreateTravelState.Error -> true
-            CreateTravelState.Authenticated -> false
-            CreateTravelState.Unauthenticated -> true
+    fun handleTravelFormState() {
+        isBackendResponseVisible = when (travelFormState) {
+            TravelFormState.Error -> true
+            TravelFormState.Authenticated -> false
+            TravelFormState.Unauthenticated -> true
+            TravelFormState.TravelSuccess -> true
             else -> false
         }
     }
 
     fun handleProcesses(navController: NavController) {
-        when (createTravelState) {
-            CreateTravelState.Error -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+        when (travelFormState) {
+            TravelFormState.Error -> {
+                clearBackendResponse()
+                travelFormState = TravelFormState.Idle
             }
 
-            CreateTravelState.Authenticated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+            TravelFormState.Authenticated -> {
+                clearBackendResponse()
+                travelFormState = TravelFormState.Idle
             }
 
-            CreateTravelState.Unauthenticated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+            TravelFormState.Unauthenticated -> {
+                clearBackendResponse()
                 logoutProcess(navController = navController)
             }
 
-            else -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+            TravelFormState.TravelSuccess -> {
+                clearBackendResponse()
+                navController.navigate(Screen.MainPageScreen.destination)
             }
+
+            TravelFormState.Idle -> {}
         }
+    }
+
+    private fun clearBackendResponse() {
+        isBackendResponseVisible = false
+        responseHandler.clearMessage()
     }
 
     /**
@@ -202,17 +417,25 @@ class TravelFormViewModel(
         navController.navigate(Screen.LoginScreen.destination)
     }
 
-
     fun getTravelCategories() {
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
                 val result = repository.getTravelCategories(token)
                 if (result?.resultCode == 200 && result.travelCategories != null) {
-                    result.travelCategories?.forEach { item ->
-                        val placeCategoryData = PlaceCategoryData(item?.name, false)
+                    placeCategoriesWithIdList = result.travelCategories!!.mapNotNull { item ->
+                        item?.id?.let { id -> id to (item.name ?: "") }
+                    }.toMutableList()
+
+                    placeCategoriesList.clear()
+                    result.travelCategories!!.forEach { item ->
+                        val placeCategoryData = PlaceCategoryData(
+                            category = item?.name,
+                            isSelected = false
+                        )
                         placeCategoriesList.add(placeCategoryData)
                     }
+
                     val backendResponse = BackendResponse()
                     processAuthenticatedState(backendResponse)
                 } else if (result?.resultCode == 401 && result.message != null) {
@@ -225,34 +448,6 @@ class TravelFormViewModel(
             } catch (e: Exception) {
                 val backendResponse = BackendResponse(message = e.message)
                 processErrorState(backendResponse)
-            }
-        }
-    }
-
-    fun updateFavoriteStatus(isFavorite: Boolean) {
-        travel = travel.copy(favourite = isFavorite)
-    }
-
-    fun searchPlace(place: String, accessToken: String, label: String) {
-        viewModelScope.launch {
-            if (place != "") {
-                val response = mapboxClient.mapboxService.searchPlace(
-                    place = place,
-                    accessToken = accessToken
-                )
-                val responseBody = response.body()
-                if (responseBody?.features != null) {
-                    val coordinates = responseBody.features.first().geometry.coordinates
-                    when (label) {
-                        "Travel" -> {
-                            travelPointTemp = Point.fromLngLat(coordinates[0], coordinates[1])
-                        }
-
-                        "Place" -> {
-                            placePointTemp = Point.fromLngLat(coordinates[0], coordinates[1])
-                        }
-                    }
-                }
             }
         }
     }

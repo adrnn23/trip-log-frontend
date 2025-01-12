@@ -1,6 +1,8 @@
 package com.example.triplog.main.presentation
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.main.components.MainPageScreenComponent
 import com.example.triplog.main.navigation.ApplicationBottomBar
@@ -42,16 +43,19 @@ import com.example.triplog.travel.presentation.travelGallery.sections.TravelOver
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun MainPageScreen(navController: NavController, sharedTravelViewModel: SharedTravelViewModel) {
-    val viewModel: MainPageViewModel = viewModel(factory = MainPageViewModel.factory)
-
-    LaunchedEffect(key1 = Unit) {
-        viewModel.getAuthenticatedUserProfileData()
-    }
+fun MainPageScreen(
+    viewModel: MainPageViewModel,
+    navController: NavController,
+    sharedTravelViewModel: SharedTravelViewModel
+) {
 
     LaunchedEffect(viewModel.loadingState, viewModel.mainPageState) {
         viewModel.handleLoadingState()
         viewModel.handleMainPageState()
+    }
+
+    BackHandler(enabled = true) {
+        (navController.context as? Activity)?.finish()
     }
 
     Scaffold(
@@ -159,7 +163,7 @@ fun MainPageContent(
                     .padding(innerpadding)
                     .fillMaxSize()
             ) {
-                MainPageScreenComponent(viewModel)
+                MainPageScreenComponent(navController, viewModel)
             }
         }
 
@@ -175,7 +179,6 @@ fun MainPageContent(
 
         MainPageSection.TravelPostOverviewSection -> {
             TravelOverviewSection(
-                navController,
                 innerpadding, viewModel.travelOverview,
                 isOptionsVisible = false,
                 onEditClick = {},
@@ -185,6 +188,7 @@ fun MainPageContent(
                     sharedTravelViewModel.setTravelData(travel)
                     navController.navigate(Screen.MapScreen.destination)
                 },
+                updateFavoriteStatus = {}
             )
         }
     }
@@ -198,6 +202,7 @@ fun MainPageBottomBar(navController: NavController, viewModel: MainPageViewModel
                 index = 0,
                 goToMainPage = {},
                 goToProfile = {
+                    navController.popBackStack()
                     navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}")
                 },
                 goToCreateTravel = {
@@ -206,8 +211,35 @@ fun MainPageBottomBar(navController: NavController, viewModel: MainPageViewModel
         }
 
         MainPageSection.SearchSection -> {
-            if (viewModel.totalPages > 0) {
-                SearchBottomBar(viewModel)
+            if (viewModel.selectedFilters.searchType == "Users" && viewModel.searchedProfiles!!.isNotEmpty()
+                || viewModel.selectedFilters.searchType == "Travels" && viewModel.searchedTravels.isNotEmpty()
+            ) {
+                when (viewModel.selectedFilters.searchType) {
+                    "Users" -> {
+                        SearchBottomBar(
+                            text = "Page ${viewModel.searchedProfilesCurrentPage} of ${viewModel.searchedProfilesTotalPages}",
+                            onNextClick = {
+                                viewModel.loadNextPage()
+                            },
+                            onPreviousClick = { viewModel.loadPreviousPage() },
+                            previousButtonEnabled = viewModel.searchedProfilesCurrentPage > 1,
+                            nextButtonEnabled = viewModel.searchedProfilesCurrentPage < viewModel.searchedProfilesTotalPages
+                        )
+                    }
+
+                    "Travels" -> {
+                        SearchBottomBar(
+                            text = "Page ${viewModel.searchedTravelsCurrentPage} of ${viewModel.searchedTravelsTotalPages}",
+                            onNextClick = {
+                                viewModel.loadNextPage()
+                            },
+                            onPreviousClick = { viewModel.loadPreviousPage() },
+                            previousButtonEnabled = viewModel.searchedTravelsCurrentPage > 1,
+                            nextButtonEnabled = viewModel.searchedTravelsCurrentPage < viewModel.searchedTravelsTotalPages
+                        )
+                    }
+                }
+
             }
         }
 
@@ -220,7 +252,7 @@ fun MainPageBottomBar(navController: NavController, viewModel: MainPageViewModel
 fun MainPageTopBar(viewModel: MainPageViewModel) {
     when (viewModel.mainPageSection) {
         MainPageSection.Main -> {
-            MainTopBar(title = "Main page", navIcon = {}, icon = {
+            MainTopBar(title = stringResource(R.string.mainPage), navIcon = {}, icon = {
                 IconButton(onClick = {
                     viewModel.mainPageSection = MainPageSection.SearchSection
                 }) {

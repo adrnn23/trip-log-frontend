@@ -19,11 +19,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.ButtonDivider
@@ -36,8 +36,7 @@ import com.example.triplog.authorization.registration.components.UsernameInput
 import com.example.triplog.main.navigation.Screen
 
 @Composable
-fun RegistrationScreen(navController: NavController) {
-    val viewModel: RegistrationViewModel = viewModel(factory = RegistrationViewModel.Factory)
+fun RegistrationScreen(viewModel: RegistrationViewModel, navController: NavController) {
 
     LaunchedEffect(viewModel.registrationState) {
         viewModel.handleRegistrationState(navController)
@@ -82,6 +81,7 @@ fun RegistrationScreen(navController: NavController) {
                 text = stringResource(R.string.registration),
                 fontSize = 32.sp,
                 modifier = Modifier
+                    .testTag("registrationText")
                     .padding(bottom = 10.dp, top = 10.dp)
             )
             UsernameInput(
@@ -90,6 +90,7 @@ fun RegistrationScreen(navController: NavController) {
                 onValueChanged = { viewModel.username = it },
                 enabled = true,
                 modifier = Modifier
+                    .testTag("usernameInput")
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
@@ -104,6 +105,7 @@ fun RegistrationScreen(navController: NavController) {
                 onValueChanged = { viewModel.email = it },
                 enabled = true,
                 modifier = Modifier
+                    .testTag("emailInput")
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
@@ -117,6 +119,7 @@ fun RegistrationScreen(navController: NavController) {
                 value = viewModel.password,
                 onValueChanged = { viewModel.password = it },
                 modifier = Modifier
+                    .testTag("passwordInput1")
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
@@ -130,6 +133,7 @@ fun RegistrationScreen(navController: NavController) {
                 value = viewModel.repeatedPassword,
                 onValueChanged = { viewModel.repeatedPassword = it },
                 modifier = Modifier
+                    .testTag("passwordInput2")
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 10.dp)
             )
@@ -146,13 +150,15 @@ fun RegistrationScreen(navController: NavController) {
                 .padding(10.dp)
         ) {
             RegistrationActivityButton(
-                R.string.register, MaterialTheme.colorScheme.primaryContainer
+                R.string.register, MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.testTag("registerButton")
             ) { viewModel.register() }
 
             ButtonDivider()
 
             RegistrationActivityButton(
-                R.string.logInToYourAccount, MaterialTheme.colorScheme.tertiaryContainer
+                R.string.logInToYourAccount, MaterialTheme.colorScheme.tertiaryContainer,
+                modifier = Modifier.testTag("loginButton")
             ) { navController.navigate(Screen.LoginScreen.destination) }
 
             Spacer(modifier = Modifier.height(20.dp))

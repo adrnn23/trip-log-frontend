@@ -6,9 +6,9 @@ import com.example.triplog.authorization.login.data.LogoutResult
 import com.example.triplog.authorization.registration.data.RegistrationRequest
 import com.example.triplog.authorization.registration.data.RegistrationResult
 import com.example.triplog.main.data.SearchProfilesResult
+import com.example.triplog.main.data.TimelineResult
 import com.example.triplog.main.data.UserID
 import com.example.triplog.profile.data.profile.AuthenticatedUserProfileResult
-import com.example.triplog.profile.data.profile.EditUserProfileRequest
 import com.example.triplog.profile.data.profile.EditUserProfileResult
 import com.example.triplog.profile.data.profile.FriendsOperationResult
 import com.example.triplog.profile.data.profile.GetFriendsListResult
@@ -20,34 +20,40 @@ import com.example.triplog.profile.data.updatePassword.UpdatePasswordRequest
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordResult
 import com.example.triplog.travel.data.TravelCategoriesResult
 import com.example.triplog.travel.data.TravelCategory
+import com.example.triplog.travel.data.TravelRequest
+import com.example.triplog.travel.data.TravelResult
+import com.example.triplog.travel.data.UpdateImageResult
+import com.example.triplog.travel.data.UserTravelsResult
 import com.squareup.moshi.Moshi
-import okhttp3.ResponseBody
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
-
-fun loginSuccess(response: Response<LoginResult>): LoginResult? {
-    return response.body()
-}
-
-fun loginClientError(response: Response<LoginResult>): ResponseBody? {
-    return response.errorBody()
-}
-
-fun registrationSuccess(response: Response<RegistrationResult>): RegistrationResult? {
-    return response.body()
-}
-
-fun registrationClientError(response: Response<RegistrationResult>): ResponseBody? {
-    return response.errorBody()
-}
 
 interface InterfaceRepository {
     suspend fun getLoginResult(request: LoginRequest): LoginResult?
     suspend fun getRegistrationResult(request: RegistrationRequest): RegistrationResult?
     suspend fun getAuthenticatedUserProfileResult(token: String?): AuthenticatedUserProfileResult?
-    suspend fun updatePassword(token: String?, updatePasswordRequest: UpdatePasswordRequest): UpdatePasswordResult?
+    suspend fun updatePassword(
+        token: String?,
+        updatePasswordRequest: UpdatePasswordRequest
+    ): UpdatePasswordResult?
+
     suspend fun getUserProfileResult(token: String?, id: Int): UserProfileResult?
     suspend fun getTravelPreferences(token: String?): TravelPreferencesResult?
-    suspend fun editUserProfile(token: String?, id: Int, editUserProfileRequest: EditUserProfileRequest): EditUserProfileResult?
+    suspend fun editUserProfile(
+        token: String?,
+        id: Int,
+        email: RequestBody,
+        name: RequestBody,
+        avatar: MultipartBody.Part?,
+        facebookLink: RequestBody?,
+        instagramLink: RequestBody?,
+        xLink: RequestBody?,
+        bio: RequestBody?,
+        travelPreferences: Map<String, RequestBody>
+    ): EditUserProfileResult?
+
+
     suspend fun getLogoutResult(token: String?): LogoutResult?
     suspend fun getFriendsList(token: String?): GetFriendsListResult?
     suspend fun getFriendsRequests(token: String?): GetFriendsRequestsResult?
@@ -60,95 +66,68 @@ interface InterfaceRepository {
         query: String,
         page: Int?
     ): SearchProfilesResult?
+
     suspend fun getTravelCategories(token: String?): TravelCategoriesResult?
+    suspend fun getTravel(token: String?, travelId: Int): TravelResult?
+    suspend fun createTravel(token: String?, travelRequest: TravelRequest): TravelResult?
+    suspend fun updateTravel(
+        token: String?,
+        travelId: Int,
+        travelRequest: TravelRequest
+    ): TravelResult?
+
+    suspend fun deleteTravel(token: String?, travelId: Int): TravelResult?
+    suspend fun toggleFavouriteTravel(token: String?, travelId: Int): TravelResult?
+    suspend fun getUserFinishedTravels(token: String?, userId: Int, page: Int?): UserTravelsResult?
+    suspend fun getUserFavouriteTravels(token: String?, userId: Int, page: Int?): UserTravelsResult?
+    suspend fun getUserPlannedTravels(token: String?, userId: Int, page: Int?): UserTravelsResult?
+    suspend fun getTimeline(
+        token: String?, page: Int?, dateFrom: String?,
+        dateTo: String?,
+        sortDirection: String?
+    ): TimelineResult?
+
+    suspend fun updateImage(
+        token: String?, imageableType: RequestBody?,
+        imageableId: RequestBody?,
+        image: MultipartBody.Part?,
+    ): UpdateImageResult?
 }
 
 class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRepository {
     override suspend fun getLoginResult(request: LoginRequest): LoginResult? {
         val response: Response<LoginResult> = tripLogApiService.getLoginResult(request)
-        when (response.code()) {
-            200 -> {
-                var loginResult = loginSuccess(response)
-                if (loginResult != null) {
-                    if (loginResult.token != null) {
-                        loginResult = LoginResult(response.code(), loginResult.token, null, null)
-                        return loginResult
-                    }
-                }
-            }
+        val loginResult: LoginResult?
 
-            401 -> {
-                val unauthorizedBody = loginClientError(response)?.string()
-                var loginResult = Moshi.Builder().build().adapter(LoginResult::class.java)
-                    .fromJson(unauthorizedBody!!)
-                if (loginResult != null) {
-                    if (loginResult.message != null) {
-                        loginResult =
-                            LoginResult(response.code(), null, loginResult.message, null)
-                        return loginResult
-                    }
-                }
-            }
-
-            422 -> {
-                val errorBody = loginClientError(response)?.string()
-                var loginResult =
-                    Moshi.Builder().build().adapter(LoginResult::class.java).fromJson(errorBody!!)
-                if (loginResult != null) {
-                    if (loginResult.errors != null && loginResult.message != null) {
-                        loginResult = LoginResult(
-                            response.code(),
-                            null,
-                            loginResult.message,
-                            loginResult.errors
-                        )
-                        return loginResult
-                    }
-                }
-            }
+        if (response.isSuccessful) {
+            loginResult = response.body()
+            loginResult?.resultCode = response.code()
+            return loginResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            loginResult = Moshi.Builder().build().adapter(LoginResult::class.java)
+                .fromJson(errorBody!!)
+            loginResult?.resultCode = response.code()
+            return loginResult
         }
-        return null
     }
 
     override suspend fun getRegistrationResult(request: RegistrationRequest): RegistrationResult? {
         val response: Response<RegistrationResult> =
             tripLogApiService.getRegistrationResult(request)
-        when (response.code()) {
-            201 -> {
-                var registrationResult = registrationSuccess(response)
-                if (registrationResult != null) {
-                    if (registrationResult.token != null) {
-                        registrationResult = RegistrationResult(
-                            response.code(),
-                            registrationResult.token,
-                            null,
-                            null
-                        )
-                        return registrationResult
-                    }
-                }
-            }
+        val registrationResult: RegistrationResult?
 
-            422 -> {
-                val errorBody = registrationClientError(response)?.string()
-                var registrationResult =
-                    Moshi.Builder().build().adapter(RegistrationResult::class.java)
-                        .fromJson(errorBody!!)
-
-                if (registrationResult != null) {
-                    if (registrationResult.errors != null && registrationResult.message != null) {
-                        registrationResult = RegistrationResult(
-                            response.code(),
-                            null,
-                            registrationResult.message,
-                            registrationResult.errors
-                        )
-                        return registrationResult
-                    }
-                }
-            }
+        if (response.isSuccessful) {
+            registrationResult = response.body()
+            registrationResult?.resultCode = response.code()
+            return registrationResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            registrationResult = Moshi.Builder().build().adapter(RegistrationResult::class.java)
+                .fromJson(errorBody!!)
+            registrationResult?.resultCode = response.code()
+            return registrationResult
         }
-        return null
     }
 
     override suspend fun getAuthenticatedUserProfileResult(token: String?): AuthenticatedUserProfileResult? {
@@ -235,25 +214,39 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
     override suspend fun editUserProfile(
         token: String?,
         id: Int,
-        editUserProfileRequest: EditUserProfileRequest
+        email: RequestBody,
+        name: RequestBody,
+        avatar: MultipartBody.Part?,
+        facebookLink: RequestBody?,
+        instagramLink: RequestBody?,
+        xLink: RequestBody?,
+        bio: RequestBody?,
+        travelPreferences: Map<String, RequestBody>
     ): EditUserProfileResult? {
-        val response: Response<EditUserProfileResult> =
-            tripLogApiService.updateUserProfile("Bearer $token", id, editUserProfileRequest)
-        val editUserProfileResult: EditUserProfileResult?
+        val response: Response<EditUserProfileResult> = tripLogApiService.updateUserProfile(
+            token = "Bearer $token",
+            id = id,
+            email = email,
+            name = name,
+            avatar = avatar,
+            facebookLink = facebookLink,
+            instagramLink = instagramLink,
+            xLink = xLink,
+            bio = bio,
+            travelPreferences = travelPreferences
+        )
 
-        if (response.isSuccessful) {
-            editUserProfileResult = response.body()
-            editUserProfileResult?.resultCode = response.code()
-            return editUserProfileResult
+        return if (response.isSuccessful) {
+            response.body()?.apply {
+                resultCode = response.code()
+            }
         } else {
             val errorBody = response.errorBody()?.string()
-            editUserProfileResult =
-                Moshi.Builder().build().adapter(EditUserProfileResult::class.java)
-                    .fromJson(errorBody!!)
-            editUserProfileResult?.resultCode = response.code()
-            editUserProfileResult?.message = editUserProfileResult?.message
-            editUserProfileResult?.errors = editUserProfileResult?.errors
-            return editUserProfileResult
+            Moshi.Builder().build()
+                .adapter(EditUserProfileResult::class.java)
+                .fromJson(errorBody.orEmpty())?.apply {
+                    resultCode = response.code()
+                }
         }
     }
 
@@ -321,7 +314,10 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
         }
     }
 
-    override suspend fun sendFriendRequest(token: String?, userID: UserID): FriendsOperationResult? {
+    override suspend fun sendFriendRequest(
+        token: String?,
+        userID: UserID
+    ): FriendsOperationResult? {
         val response: Response<FriendsOperationResult> =
             tripLogApiService.sendFriendRequest("Bearer $token", userID)
 
@@ -444,6 +440,235 @@ class Repository(private val tripLogApiService: TripLogApiService) : InterfaceRe
                     .fromJson(errorBody!!)
             friendsOperationResult?.resultCode = response.code()
             return friendsOperationResult
+        }
+    }
+
+    override suspend fun getTravel(
+        token: String?,
+        travelId: Int
+    ): TravelResult? {
+        val response: Response<TravelResult> =
+            tripLogApiService.getTravel("Bearer $token", travelId)
+
+        val travelResult: TravelResult?
+        if (response.isSuccessful) {
+            travelResult = response.body()
+            travelResult?.resultCode = response.code()
+            return travelResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelResult =
+                Moshi.Builder().build().adapter(TravelResult::class.java)
+                    .fromJson(errorBody!!)
+            travelResult?.resultCode = response.code()
+            return travelResult
+        }
+    }
+
+    override suspend fun createTravel(
+        token: String?,
+        travelRequest: TravelRequest
+    ): TravelResult? {
+        val response: Response<TravelResult> =
+            tripLogApiService.createTravel("Bearer $token", travelRequest)
+
+        val travelResult: TravelResult?
+        if (response.isSuccessful) {
+            travelResult = response.body()
+            travelResult?.resultCode = response.code()
+            return travelResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelResult =
+                Moshi.Builder().build().adapter(TravelResult::class.java)
+                    .fromJson(errorBody!!)
+            travelResult?.resultCode = response.code()
+            return travelResult
+        }
+    }
+
+    override suspend fun updateTravel(
+        token: String?,
+        travelId: Int,
+        travelRequest: TravelRequest
+    ): TravelResult? {
+        val response: Response<TravelResult> =
+            tripLogApiService.updateTravel("Bearer $token", travelId, travelRequest)
+
+        val travelResult: TravelResult?
+        if (response.isSuccessful) {
+            travelResult = response.body()
+            travelResult?.resultCode = response.code()
+            return travelResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelResult =
+                Moshi.Builder().build().adapter(TravelResult::class.java)
+                    .fromJson(errorBody!!)
+            travelResult?.resultCode = response.code()
+            return travelResult
+        }
+    }
+
+    override suspend fun deleteTravel(
+        token: String?,
+        travelId: Int
+    ): TravelResult? {
+        val response: Response<TravelResult> =
+            tripLogApiService.deleteTravel("Bearer $token", travelId)
+
+        val travelResult: TravelResult?
+        if (response.isSuccessful) {
+            travelResult = response.body()
+            travelResult?.resultCode = response.code()
+            return travelResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelResult =
+                Moshi.Builder().build().adapter(TravelResult::class.java)
+                    .fromJson(errorBody!!)
+            travelResult?.resultCode = response.code()
+            return travelResult
+        }
+    }
+
+    override suspend fun toggleFavouriteTravel(
+        token: String?,
+        travelId: Int
+    ): TravelResult? {
+        val response: Response<TravelResult> =
+            tripLogApiService.toggleFavouriteTravel("Bearer $token", travelId)
+
+        val travelResult: TravelResult?
+        if (response.isSuccessful) {
+            travelResult = response.body()
+            travelResult?.resultCode = response.code()
+            return travelResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelResult =
+                Moshi.Builder().build().adapter(TravelResult::class.java)
+                    .fromJson(errorBody!!)
+            travelResult?.resultCode = response.code()
+            return travelResult
+        }
+    }
+
+    override suspend fun getUserFinishedTravels(
+        token: String?,
+        userId: Int,
+        page: Int?
+    ): UserTravelsResult? {
+        val response: Response<UserTravelsResult> =
+            tripLogApiService.getUserFinishedTravels("Bearer $token", userId, page)
+
+        val travelsResult: UserTravelsResult?
+        if (response.isSuccessful) {
+            travelsResult = response.body()
+            travelsResult?.resultCode = response.code()
+            return travelsResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelsResult =
+                Moshi.Builder().build().adapter(UserTravelsResult::class.java)
+                    .fromJson(errorBody!!)
+            travelsResult?.resultCode = response.code()
+            return travelsResult
+        }
+    }
+
+    override suspend fun getUserFavouriteTravels(
+        token: String?,
+        userId: Int,
+        page: Int?
+    ): UserTravelsResult? {
+        val response: Response<UserTravelsResult> =
+            tripLogApiService.getUserFavouriteTravels("Bearer $token", userId, page)
+
+        val travelsResult: UserTravelsResult?
+        if (response.isSuccessful) {
+            travelsResult = response.body()
+            travelsResult?.resultCode = response.code()
+            return travelsResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelsResult =
+                Moshi.Builder().build().adapter(UserTravelsResult::class.java)
+                    .fromJson(errorBody!!)
+            travelsResult?.resultCode = response.code()
+            return travelsResult
+        }
+    }
+
+    override suspend fun getUserPlannedTravels(
+        token: String?,
+        userId: Int,
+        page: Int?
+    ): UserTravelsResult? {
+        val response: Response<UserTravelsResult> =
+            tripLogApiService.getUserPlannedTravels("Bearer $token", userId, page)
+
+        val travelsResult: UserTravelsResult?
+        if (response.isSuccessful) {
+            travelsResult = response.body()
+            travelsResult?.resultCode = response.code()
+            return travelsResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            travelsResult =
+                Moshi.Builder().build().adapter(UserTravelsResult::class.java)
+                    .fromJson(errorBody!!)
+            travelsResult?.resultCode = response.code()
+            return travelsResult
+        }
+    }
+
+    override suspend fun getTimeline(
+        token: String?,
+        page: Int?,
+        dateFrom: String?,
+        dateTo: String?,
+        sortDirection: String?
+    ): TimelineResult? {
+        val response: Response<TimelineResult> =
+            tripLogApiService.getTimeline("Bearer $token", page, dateFrom, dateTo, sortDirection)
+
+        val timelineResult: TimelineResult?
+        if (response.isSuccessful) {
+            timelineResult = response.body()
+            timelineResult?.resultCode = response.code()
+            return timelineResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            timelineResult =
+                Moshi.Builder().build().adapter(TimelineResult::class.java)
+                    .fromJson(errorBody!!)
+            timelineResult?.resultCode = response.code()
+            return timelineResult
+        }
+    }
+
+    override suspend fun updateImage(
+        token: String?,
+        imageableType: RequestBody?,
+        imageableId: RequestBody?,
+        image: MultipartBody.Part?
+    ): UpdateImageResult? {
+        val response: Response<UpdateImageResult> =
+            tripLogApiService.updateImage("Bearer $token", imageableType, imageableId, image)
+
+        val updateImageResult: UpdateImageResult?
+        if (response.isSuccessful) {
+            updateImageResult = response.body()
+            updateImageResult?.resultCode = response.code()
+            return updateImageResult
+        } else {
+            val errorBody = response.errorBody()?.string()
+            updateImageResult =
+                Moshi.Builder().build().adapter(UpdateImageResult::class.java)
+                    .fromJson(errorBody!!)
+            updateImageResult?.resultCode = response.code()
+            return updateImageResult
         }
     }
 }

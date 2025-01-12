@@ -26,9 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.example.triplog.R
-import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.components.EditAvatarComponent
 import com.example.triplog.profile.components.EditBasicInformation
 import com.example.triplog.profile.components.EditPasswordComponent
@@ -86,8 +84,7 @@ fun EditProfileSection(
 
         item {
             EditBasicInformation(viewModel, onClick = {
-                viewModel.section =
-                    EditUserProfileSection.EditBasicInformation
+                viewModel.section = EditUserProfileSection.EditBasicInformation
                 viewModel.bioTemp = viewModel.editProfile.bio ?: ""
             })
             Spacer(modifier = Modifier.height(10.dp))

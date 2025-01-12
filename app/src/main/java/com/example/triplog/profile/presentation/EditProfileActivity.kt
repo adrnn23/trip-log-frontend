@@ -19,7 +19,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.navigation.ButtonBottomBar
@@ -32,13 +31,7 @@ import com.example.triplog.profile.presentation.sections.UpdatePasswordSection
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun EditProfileScreen(navController: NavController) {
-    val viewModel: EditProfileViewModel =
-        viewModel(factory = EditProfileViewModel.provideFactory())
-
-    LaunchedEffect(key1 = Unit) {
-        viewModel.initParams()
-    }
+fun EditProfileScreen(viewModel: EditProfileViewModel, navController: NavController) {
 
     LaunchedEffect(viewModel.loadingState, viewModel.editProfileState) {
         viewModel.handleLoadingState()
@@ -63,7 +56,7 @@ fun EditProfileScreen(navController: NavController) {
                 Column {
                     viewModel.responseHandler.message.value.let {
                         Text(
-                            text = it ?: "Operation without message from server",
+                            text = it ?: stringResource(R.string.operationWithoutMessage),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer

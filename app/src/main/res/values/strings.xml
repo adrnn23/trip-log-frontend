@@ -1,27 +1,17 @@
 <resources>
     <string name="app_name">TripLog</string>
-
     <string name="registration">Registration</string>
     <string name="username">Username</string>
     <string name="email">E-mail address</string>
     <string name="password">Password</string>
     <string name="repeatedPassword">Repeat password</string>
-
     <string name="register">Sign up</string>
-
     <string name="login">Login</string>
-    <string name="logIn">Log in</string>
-
     <string name="createNewAccount">Create new account</string>
     <string name="or">or</string>
     <string name="logInToYourAccount">Log in to your account</string>
     <string name="ok">OK</string>
     <string name="result">Result</string>
-
-    <string name="emptyFieldsInfo">Fill the required fields.</string>
-    <string name="invalidLoginCredentials">Invalid login credentials - invalid email or password.</string>
-
-    <string name="favoriteCategories">Favorite Travel Categories</string>
     <string name="aboutMe">About me</string>
     <string name="travelPreferences">Travel Preferences</string>
     <string name="friends">Friends</string>
@@ -31,124 +21,68 @@
     <string name="deleteFriend">Delete friend</string>
     <string name="addToFriends">Add to friends</string>
     <string name="acceptRequest">Accept request</string>
-    <string name="rejectRequest">Reject request</string>
-    <string name="youHaveBeenInvited">You have been invited to be a friend</string>
-
     <string name="travels">Travels</string>
-    <string name="favorite">Favorite travels</string>
-    <string name="planned">Planned travels</string>
-    <string name="travelAdvices">Travel Advices</string>
-
-    <string name="home">Home</string>
-    <string name="addTravel">Add Travel</string>
-    <string name="profile">Profile</string>
-
     <string name="editProfile">Edit profile</string>
     <string name="editAvatar">Edit avatar</string>
     <string name="profilePhoto">Profile photo</string>
     <string name="editYourProfile">Edit your profile</string>
     <string name="editUsername">Edit username</string>
     <string name="editEmail">Edit e-mail</string>
-
     <string name="basicInformation">Basic information</string>
-    <string name="usernameLength">Username length must be equal to or less than 32.</string>
     <string name="biography">Biography</string>
-    <string name="editBiography">Edit biography</string>
-    <string name="saveBiography">Save your biography</string>
     <string name="validationError">Validation Error</string>
-    <string name="biographyLength">Biography length must be equal to or less than 384.</string>
     <string name="saveChanges">Save changes</string>
     <string name="wouldYouLikeToSaveChanges">Would you like to save changes to your profile?</string>
-
-    <string name="addTravelPreferences">Add your travel preferences</string>
     <string name="saveTravelPreferences">Save travel preferences</string>
     <string name="editPreferences">Edit travel preferences</string>
-    <string name="travelPreferencesNumber">Number of travel preferences must be equal to or less than 9.</string>
-
     <string name="links">Links</string>
     <string name="link">Link</string>
-    <string name="addLinks">Add your links</string>
     <string name="deleteLinkTitle">Delete link</string>
     <string name="deleteLinkText">Do you want to delete link?</string>
     <string name="addMaxThreeLinks">Add your links (you can add max three links)</string>
     <string name="addLink">Add link</string>
-    <string name="site">Site</string>
     <string name="selectSite">Select site</string>
-    <string name="editLinks">Edit links</string>
-    <string name="saveYourLinks">Save your links</string>
-    <string name="facebook">Facebook</string>
-    <string name="instagram">Instagram</string>
-    <string name="x">X</string>
-    <string name="linksNumber">Number of links must be equal to or less than 3.</string>
-
     <string name="travelName">Travel name</string>
     <string name="travelDescription">Travel description</string>
     <string name="travelDate">Date of travel</string>
     <string name="editBasicInformation">Edit basic information</string>
     <string name="travelPhoto">Travel photo</string>
-    <string name="selectTravelPhoto">Select travel photo</string>
     <string name="travelPlaces">Travel places</string>
-    <string name="markAsFavorite">Mark travel as favorite</string>
-    <string name="editPlaces">Edit places</string>
     <string name="newPlace">New place</string>
     <string name="addNewPlace">Add new place</string>
     <string name="editPlace">Edit place</string>
     <string name="editPlaceAndSave">Edit place and save</string>
     <string name="saveLocalization">Save localization</string>
-    <string name="addRequiredPlace">Add required places</string>
-    <string name="minOnePlace">You have to add at least one place to create travel</string>
-
     <string name="updatePassword">Update password</string>
     <string name="updateYourPassword">Update your password</string>
     <string name="currentPassword">Current password</string>
     <string name="newPassword">New password</string>
     <string name="repeatedNewPassword">Repeat new password</string>
-    <string name="updatePasswordInformation">Password update information</string>
-
     <string name="logout">Logout</string>
     <string name="doYouWantToLogout">Do you want to log out?</string>
-
-    <string name="editProfileInformation">Edit profile information</string>
-    <string name="editProfileSuccess">You have edited your profile successfully.</string>
-
-    <string name="mainPage">Main page</string>
     <string name="operationResult">Operation result</string>
-
     <string name="addNewTravel">Add new travel</string>
     <string name="completeTravelInformation">Complete the information about your travel</string>
     <string name="createNewTravel">Create new travel</string>
     <string name="addNewTravelQuestion">Do you want to add new travel?</string>
     <string name="editTravelQuestion">Do you want to update your travel?</string>
     <string name="editTravelInformation">Edit travel information</string>
-    <string name="startDate">Travel start date:</string>
-    <string name="endDate">Travel end date:</string>
+    <string name="travelStartDate">Travel start date:</string>
+    <string name="travelEndDate">Travel end date:</string>
     <string name="cancel">Cancel</string>
-    <string name="editTravelDescription">Edit travel description</string>
-    <string name="saveTravelDescription">Save travel description</string>
-
-
     <string name="placeName">Place name</string>
     <string name="completePlaceInformation">Complete the information about the place</string>
-    <string name="placeOnMap">Place on the map</string>
     <string name="placeDescription">Place description</string>
     <string name="placeCategory">Category of place</string>
     <string name="editPlaceInformation">Edit place information</string>
     <string name="editLocalization">Edit place localization</string>
-    <string name="editPlaceDescription">Edit place description</string>
-    <string name="savePlaceDescription">Save place description</string>
-    <string name="enterLocation">Enter location</string>
-    <string name="saveLocation">Save location</string>
-    <string name="search">Search</string>
     <string name="placePhoto">Place photo</string>
     <string name="noPhotoSelected">No photo selected</string>
     <string name="noPhotoAvailable">Photo is not available</string>
-    <string name="selectPlacePhoto">Select place photo</string>
     <string name="close">Close</string>
     <string name="delete">Delete</string>
     <string name="editTravel">Edit travel</string>
     <string name="edit">Edit</string>
-    <string name="editYourTravel">Edit your travel</string>
-
     <string name="travelGallery">Travel gallery</string>
     <string name="travelOverview">Travel overview</string>
     <string name="notSet">Not set</string>
@@ -161,5 +95,25 @@
     <string name="placeDeleted">Place has been deleted</string>
     <string name="userDeleted">User deleted from friends</string>
     <string name="userAddedToFriends">User added to friends</string>
-
+    <string name="planned">Planned</string>
+    <string name="operationWithoutMessage">Operation without message from server</string>
+    <string name="failedToLoadMap">Failed to load map</string>
+    <string name="searchFilters">Search Filters</string>
+    <string name="searchType">Search Type</string>
+    <string name="apply">Apply</string>
+    <string name="mainPage">Main page</string>
+    <string name="startDate">Start date</string>
+    <string name="endDate">End date</string>
+    <string name="tooManyCharacters">Too many characters!</string>
+    <string name="noLocationAvailable">No location available</string>
+    <string name="noLocationSet">No location set</string>
+    <string name="noPlacesAddedYet">No places added yet</string>
+    <string name="profileWithoutPreferences">Profile without added travel preferences</string>
+    <string name="profileWithoutBiography">Profile without biography</string>
+    <string name="noLinksAddedYet">No links added yet</string>
+    <string name="exploreTravels">Explore travels</string>
+    <string name="showLess">Show less</string>
+    <string name="showMore">Show more</string>
+    <string name="noDescriptionAvailable">No description available</string>
+    <string name="unknownPlace">Unknown place</string>
 </resources>

@@ -2,9 +2,18 @@ package com.example.triplog.travel.presentation
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -17,15 +26,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.drawable.toBitmap
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
-import com.example.triplog.main.navigation.MapViewBottomBar
-import com.example.triplog.main.navigation.Screen
+import com.example.triplog.travel.components.BottomPlaceCard
 import com.example.triplog.travel.components.LocalizationSearchBar
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.MapView
@@ -40,34 +49,41 @@ import com.mapbox.maps.plugin.gestures.addOnMapClickListener
 import com.mapbox.maps.plugin.scalebar.scalebar
 
 @Composable
-fun getDynamicPadding(): Dp {
+fun getDynamicPadding(parameter: Float): Dp {
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
-    return screenHeight * 0.01f
+    return screenHeight * parameter
 }
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "Lifecycle", "UseCompatLoadingForDrawables")
+@SuppressLint(
+    "UnusedMaterial3ScaffoldPaddingParameter",
+    "Lifecycle",
+    "UseCompatLoadingForDrawables", "StateFlowValueCalledInComposition"
+)
 @Composable
 fun SearchMapScreen(
+    viewModel: SearchMapViewModel,
     sharedTravelViewModel: SharedTravelViewModel,
     navController: NavController
 ) {
-    val viewModel: SearchMapViewModel = viewModel(factory = SearchMapViewModel.Factory)
     val context = LocalContext.current
     val mapView = remember { MapView(context) }
     var pointAnnotationManager: PointAnnotationManager? by remember { mutableStateOf(null) }
     val marker = context.getDrawable(R.drawable.red_marker)!!.toBitmap()
     val pointType = remember { mutableStateOf(sharedTravelViewModel.tempPointType) }
+    val accessToken = stringResource(R.string.mapbox_access_token)
 
     LaunchedEffect(key1 = Unit) {
         if (sharedTravelViewModel.tempPointType != PointType.None) {
             when (pointType.value) {
                 PointType.Travel -> {
                     viewModel.point = sharedTravelViewModel.tempTravelData.point
+                    viewModel.point?.let { viewModel.getPlaceNameByCoordinates(it, accessToken) }
                 }
 
                 PointType.Place -> {
                     viewModel.point = sharedTravelViewModel.tempPlaceData.point
+                    viewModel.point?.let { viewModel.getPlaceNameByCoordinates(it, accessToken) }
                 }
 
                 else -> {
@@ -79,6 +95,10 @@ fun SearchMapScreen(
         }
     }
 
+    LaunchedEffect(viewModel.searchMapState) {
+        viewModel.handleSearchMapState()
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             mapView.onDestroy()
@@ -87,19 +107,7 @@ fun SearchMapScreen(
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            MapViewBottomBar(
-                R.string.saveLocalization,
-                onClick = {
-                    if (viewModel.point != null) {
-                        sharedTravelViewModel.setNewPointInTravelOrPlace(viewModel.point!!)
-                        navController.navigate(Screen.TravelFormScreen.destination)
-                    }
-                },
-                onBackPressed = { navController.popBackStack() })
-        }
-    ) { padding ->
+    Scaffold {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -107,7 +115,9 @@ fun SearchMapScreen(
             LocalizationSearchBar(
                 stringResource(R.string.mapbox_access_token),
                 viewModel,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top= getDynamicPadding())
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = getDynamicPadding(0.01f))
             )
             AndroidView(
                 factory = {
@@ -120,6 +130,7 @@ fun SearchMapScreen(
                             mapView.annotations.createPointAnnotationManager()
                         mapView.getMapboxMap().addOnMapClickListener { point ->
                             viewModel.point = point
+                            viewModel.getPlaceNameByCoordinates(point, accessToken)
                             true
                         }
                     }
@@ -141,7 +152,70 @@ fun SearchMapScreen(
                 },
                 modifier = Modifier
                     .fillMaxSize()
+                    .align(Alignment.Center)
+            )
+
+            BottomPlaceCard(
+                placeName = viewModel.placeName,
+                onSaveClick = {
+                    if (viewModel.point != null) {
+                        sharedTravelViewModel.setNewPointInTravelOrPlace(viewModel.point!!)
+                        navController.popBackStack()
+                    }
+                },
+                onBackClick = { navController.popBackStack() },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = getDynamicPadding(0.05f))
+                    .padding(horizontal = 8.dp)
             )
         }
+    }
+
+    if (viewModel.isMapboxResponseVisible) {
+        AlertDialog(
+            title = { Text(stringResource(R.string.operationResult)) },
+            text = {
+                Column {
+                    viewModel.responseHandler.message.value.let {
+                        Text(
+                            text = it ?: "Operation without message from server",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    viewModel.responseHandler.errors.value?.let { errors ->
+                        errors.forEach { error ->
+                            Text(
+                                text = "- $error",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+            },
+            icon = {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            onDismissRequest = { viewModel.handleProcesses() },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.handleProcesses() },
+                    shape = RoundedCornerShape(5.dp),
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.ok),
+                    )
+                }
+            }
+        )
     }
 }

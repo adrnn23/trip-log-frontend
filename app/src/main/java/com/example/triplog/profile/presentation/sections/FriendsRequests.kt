@@ -1,7 +1,6 @@
 package com.example.triplog.profile.presentation.sections
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -100,11 +99,6 @@ fun FriendsRequestItem(
                 .clickable { onClick() }
                 .size(96.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .border(
-                    2.dp,
-                    MaterialTheme.colorScheme.primaryContainer,
-                    RoundedCornerShape(24.dp)
-                )
         )
 
         Spacer(modifier = Modifier.width(8.dp))

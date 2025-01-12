@@ -21,11 +21,11 @@ data class UserProfileResult(
     val message: String?,
     @Json(name = "name")
     val name: String?,
-    @Json(name = "planned_trips_count")
+    @Json(name = "planned_travels_count")
     val plannedTripsCount: Int?,
     @Json(name = "travel_preferences")
     val travelPreferences: List<TravelPreference?>?,
-    @Json(name = "trips_count")
+    @Json(name = "finished_travels_count")
     val tripsCount: Int?,
     @Json(name = "x_link")
     val xLink: String?

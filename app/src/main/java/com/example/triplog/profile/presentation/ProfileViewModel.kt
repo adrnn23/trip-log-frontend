@@ -49,6 +49,7 @@ data class UserProfileData(
     var username: String? = "",
     var id: Int? = null,
     var bio: String? = "",
+    var avatar: String? = null,
     var email: String? = "",
     var tripsCount: Int? = null,
     var plannedCount: Int? = null,
@@ -62,15 +63,15 @@ class ProfileViewModel(
     private val repository: InterfaceRepository,
     val token: String?,
     val sessionManager: SessionManager,
-    val responseHandler: ResponseHandler
+    val responseHandler: ResponseHandler,
+    private val id: Int?
 ) :
     ViewModel() {
-
-    var profileState by mutableStateOf<ProfileState>(ProfileState.Idle)
+    var isOwnProfile by mutableStateOf(false)
     var profileSection by mutableStateOf<UserProfileSection>(UserProfileSection.Main)
     var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
+    var profileState by mutableStateOf<ProfileState>(ProfileState.Idle)
     var userProfile by mutableStateOf(UserProfileData())
-
     var friendsList by mutableStateOf(mutableListOf<GetFriendsListResult.Data?>())
     var friendsRequests by mutableStateOf(mutableListOf<GetFriendsRequestsResult.Data?>())
 
@@ -81,14 +82,17 @@ class ProfileViewModel(
     var isDeleteFriendDialogVisible by mutableStateOf(false)
     var isProgressIndicatorVisible by mutableStateOf(false)
     var isBackendResponseVisible by mutableStateOf(false)
-    var isOwnProfile by mutableStateOf(false)
 
-    fun initParams(id: Int?) {
+    init {
+        initParams()
+    }
+
+    private fun initParams() {
+        userProfile.id = id
         getUserProfileResult()
         profileSection = UserProfileSection.Main
-        userProfile.id = id
         isOwnProfile = id == sessionManager.getUserId()
-        if(isOwnProfile){
+        if (isOwnProfile) {
             getFriendsListResult()
             getFriendsRequests()
         }
@@ -96,6 +100,7 @@ class ProfileViewModel(
 
     companion object {
         fun provideFactory(
+            id: Int?
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application =
@@ -108,10 +113,12 @@ class ProfileViewModel(
                     token = sessionManager.getToken(),
                     sessionManager = sessionManager,
                     responseHandler = responseHandler,
+                    id = id
                 )
             }
         }
     }
+
 
     private fun linksInit(facebookLink: String?, instagramLink: String?, xLink: String?) {
         if (facebookLink != null) {
@@ -172,38 +179,37 @@ class ProfileViewModel(
     fun handleProcesses(navController: NavController) {
         when (profileState) {
             ProfileState.Error -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
+                profileState = ProfileState.Idle
             }
 
             ProfileState.Authenticated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
+                profileState = ProfileState.Idle
             }
 
             ProfileState.Unauthenticated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
                 logoutProcess(navController = navController)
             }
 
             ProfileState.LoggedOut -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
                 logoutProcess(navController = navController)
             }
 
             ProfileState.LoadingProfileError -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
                 navController.navigate(Screen.MainPageScreen.destination)
             }
 
-            else -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
-            }
+            ProfileState.Idle -> {}
         }
+    }
+
+    private fun clearBackendResponse() {
+        isBackendResponseVisible = false
+        responseHandler.clearMessage()
     }
 
     /**
@@ -219,8 +225,7 @@ class ProfileViewModel(
      * such as retrieving data from a server.
      */
     fun handleLoadingState() {
-        isProgressIndicatorVisible =
-            loadingState == LoadingState.Loading
+        isProgressIndicatorVisible = loadingState == LoadingState.Loading
     }
 
     fun logout() {
@@ -244,11 +249,11 @@ class ProfileViewModel(
         }
     }
 
-    private fun getUserProfileResult() {
+    fun getUserProfileResult() {
         loadingState = LoadingState.Loading
         val token = sessionManager.getToken()
         viewModelScope.launch {
-            delay(250)
+            delay(100)
             try {
                 val result = repository.getUserProfileResult(token, userProfile.id!!)
                 if (result != null) {
@@ -256,11 +261,12 @@ class ProfileViewModel(
                         userProfile = UserProfileData(
                             username = result.name,
                             id = result.id,
+                            avatar = result.avatar,
                             bio = result.bio,
                             email = userProfile.email,
                             tripsCount = result.tripsCount ?: 0,
                             plannedCount = result.plannedTripsCount ?: 0,
-                            travelPreferences = result.travelPreferences
+                            travelPreferences = result.travelPreferences,
                         )
                         linksInit(result.facebookLink, result.instagramLink, result.xLink)
                         val backendResponse = BackendResponse()

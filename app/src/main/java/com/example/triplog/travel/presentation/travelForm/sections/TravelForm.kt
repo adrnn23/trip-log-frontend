@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.navigation.Screen
-import com.example.triplog.travel.components.FavoriteTravelComponent
 import com.example.triplog.travel.components.PlaceInformationComponent
 import com.example.triplog.travel.components.PlacePhotoComponent
 import com.example.triplog.travel.components.TravelInformationComponent
@@ -99,8 +98,53 @@ fun TravelFormMainSection(
         }
 
     }
+
     LaunchedEffect(pagerState.currentPage) {
         currentTab = pagerState.currentPage
+    }
+
+    if (viewModel.isCreateEditTravelDialogVisible) {
+        AlertDialog(
+            title = { Text(stringResource(if (!viewModel.editScreen) R.string.createNewTravel else R.string.editTravel)) },
+            text = {
+                val textId =
+                    if (!viewModel.editScreen) R.string.addNewTravelQuestion else R.string.editTravelQuestion
+                Text(
+                    text = stringResource(textId),
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            },
+            icon = { Icon(Icons.Default.Save, contentDescription = null) },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            onDismissRequest = { viewModel.isCreateEditTravelDialogVisible = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.isCreateEditTravelDialogVisible = false
+                        if (viewModel.editScreen)
+                            viewModel.editTravel()
+                        else
+                            viewModel.addTravel()
+                    },
+                    shape = RoundedCornerShape(5.dp),
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.ok),
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.isCreateEditTravelDialogVisible = false },
+                    shape = RoundedCornerShape(5.dp),
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.cancel),
+                    )
+                }
+            }
+        )
     }
 }
 
@@ -131,14 +175,9 @@ fun TravelFormSection(
             TravelInformationComponent(viewModel, onClick = {
                 viewModel.section =
                     TravelFormSection.EditTravelInformation
-                viewModel.travelNameTemp = viewModel.travel.name ?: ""
-                viewModel.travelDescriptionTemp = viewModel.travel.description ?: ""
+                viewModel.travelNameTemp = viewModel.travel.name
+                viewModel.travelDescriptionTemp = viewModel.travel.description
             })
-            Spacer(modifier = Modifier.height(10.dp))
-        }
-
-        item {
-            FavoriteTravelComponent(viewModel)
             Spacer(modifier = Modifier.height(10.dp))
         }
 
@@ -151,7 +190,7 @@ fun TravelFormSection(
 
         item {
             TravelPlaceLocalizationComponent(
-                pointTemp = viewModel.travel.point,
+                mapUrl = viewModel.travelStaticMapUrl,
                 onClick = {
                     val travel = viewModel.prepareTempTravelDataToSharedVM()
                     val place = viewModel.prepareTempPlaceDataToSharedVM()
@@ -168,49 +207,6 @@ fun TravelFormSection(
             TravelPhotoComponent(viewModel)
             Spacer(modifier = Modifier.height(10.dp))
         }
-    }
-
-    if (viewModel.isCreateEditTravelDialogVisible) {
-        AlertDialog(
-            title = { Text(stringResource(if (!viewModel.editScreen) R.string.createNewTravel else R.string.editTravel)) },
-            text = {
-                val textId =
-                    if (!viewModel.editScreen) R.string.addNewTravelQuestion else R.string.editTravelQuestion
-                Text(
-                    text = stringResource(textId),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            },
-            icon = { Icon(Icons.Default.Save, contentDescription = null) },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            onDismissRequest = { viewModel.isCreateEditTravelDialogVisible = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.isCreateEditTravelDialogVisible = false
-                        navController.navigate(Screen.MainPageScreen.destination)
-                        sharedTravelViewModel.clearTravelData()
-                        sharedTravelViewModel.setTravelEdit(false)
-                    },
-                    shape = RoundedCornerShape(5.dp),
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.ok),
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { viewModel.isCreateEditTravelDialogVisible = false },
-                    shape = RoundedCornerShape(5.dp),
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.cancel),
-                    )
-                }
-            }
-        )
     }
 }
 
@@ -243,15 +239,15 @@ fun PlaceFormSection(
                 viewModel,
                 onClick = {
                     viewModel.section = TravelFormSection.EditPlaceInformation
-                    viewModel.placeNameTemp = viewModel.place.name ?: ""
-                    viewModel.placeDescriptionTemp = viewModel.place.description ?: ""
+                    viewModel.placeNameTemp = viewModel.place.name
+                    viewModel.placeDescriptionTemp = viewModel.place.description
                 })
             Spacer(modifier = Modifier.height(10.dp))
         }
 
         item {
             TravelPlaceLocalizationComponent(
-                pointTemp = viewModel.place.point,
+                mapUrl = viewModel.placeStaticMapUrl,
                 onClick = {
                     val travel = viewModel.prepareTempTravelDataToSharedVM()
                     val place = viewModel.prepareTempPlaceDataToSharedVM()

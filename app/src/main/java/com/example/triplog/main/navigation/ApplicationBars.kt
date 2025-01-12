@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
@@ -44,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.triplog.R
 import com.example.triplog.main.data.BottomNavItem
-import com.example.triplog.main.presentation.MainPageViewModel
 import com.example.triplog.profile.components.EditButtonComponent
 
 @Composable
@@ -192,43 +190,12 @@ fun ButtonBottomBar(
 }
 
 @Composable
-fun MapViewBottomBar(
-    @StringRes buttonText: Int,
-    onBackPressed: () -> Unit,
-    onClick: () -> Unit
-) {
-    BottomAppBar(actions = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround,
-
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            IconButton(
-                onClick = onBackPressed
-            ) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-            EditButtonComponent(
-                buttonText,
-                MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.fillMaxWidth(0.9f)
-            ) {
-                onClick()
-            }
-        }
-    }
-    )
-}
-
-@Composable
 fun SearchBottomBar(
-    viewModel: MainPageViewModel
+    text: String,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
+    previousButtonEnabled: Boolean,
+    nextButtonEnabled: Boolean
 ) {
     BottomAppBar(actions = {
         Row(
@@ -238,20 +205,20 @@ fun SearchBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Button(
-                onClick = { viewModel.loadPreviousPage() },
-                enabled = viewModel.currentPage > 1
+                onClick = { onPreviousClick() },
+                enabled = previousButtonEnabled
             ) {
                 Text("Previous")
             }
 
             Text(
-                text = "Page ${viewModel.currentPage} of ${viewModel.totalPages}",
+                text = text,
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
 
             Button(
-                onClick = { viewModel.loadNextPage() },
-                enabled = viewModel.currentPage < viewModel.totalPages
+                onClick = { onNextClick() },
+                enabled = nextButtonEnabled
             ) {
                 Text("Next")
             }

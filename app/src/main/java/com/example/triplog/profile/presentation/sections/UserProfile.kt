@@ -38,7 +38,7 @@ fun ProfileSection(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp),
+            .padding(horizontal = 10.dp),
         contentPadding = innerpadding,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
@@ -48,12 +48,12 @@ fun ProfileSection(
                 viewModel,
                 navController
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         item {
             AboutMeComponent(viewModel.userProfile.bio)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         item {
@@ -62,12 +62,12 @@ fun ProfileSection(
                     .fillMaxWidth()
                     .padding(4.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         item {
-            TravelNavigation(navController)
-            Spacer(modifier = Modifier.height(12.dp))
+            TravelNavigation(viewModel.userProfile.id, navController)
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

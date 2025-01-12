@@ -45,7 +45,8 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            resources.excludes.add("META-INF/LICENSE.md")
+            resources.excludes.add("META-INF/LICENSE-notice.md")
         }
     }
 }
@@ -103,4 +104,7 @@ dependencies {
     implementation (libs.mapbox.search.android.ui)
     implementation (libs.mapbox.search.android)
     implementation (libs.converter.gson)
+    androidTestImplementation (libs.androidx.compose.ui.ui.test.junit43)
+    androidTestImplementation (libs.ui.test.manifest)
+    androidTestImplementation (libs.mockk.android)
 }

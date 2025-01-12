@@ -24,13 +24,16 @@ import com.example.triplog.main.TripLogApplication
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.network.InterfaceRepository
 import com.example.triplog.profile.data.LinkData
-import com.example.triplog.profile.data.profile.EditUserProfileRequest
 import com.example.triplog.profile.data.profile.EditUserProfileResult
 import com.example.triplog.profile.data.profile.TravelPreferencesResult
 import com.example.triplog.profile.data.profile.UserProfileResult.TravelPreference
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordRequest
 import com.example.triplog.profile.data.updatePassword.UpdatePasswordResult
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 sealed class EditProfileState {
     data object NotUpdated : EditProfileState()
@@ -49,14 +52,14 @@ sealed class EditUserProfileSection {
 }
 
 data class EditProfileData(
-    var avatar: String? = "",
     var bio: String? = "",
     var email: String? = "",
     var name: String? = "",
     var id: Int? = null,
     var facebookLink: String? = "",
     var instagramLink: String? = "",
-    var xLink: String? = ""
+    var xLink: String? = "",
+    var avatarUrl: String? = null
 )
 
 @SuppressLint("MutableCollectionMutableState")
@@ -66,10 +69,10 @@ class EditProfileViewModel(
     val responseHandler: ResponseHandler
 ) :
     ViewModel() {
-
-    fun initParams() {
-        getUserProfileResult()
-    }
+    var editProfile by mutableStateOf(EditProfileData())
+    var editProfileState by mutableStateOf<EditProfileState>(EditProfileState.NotUpdated)
+    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
+    var section by mutableStateOf<EditUserProfileSection>(EditUserProfileSection.Main)
 
     /**
      * Flags which are used by UI to display individual parts of the UI such as dialogues, loading effect.
@@ -82,13 +85,12 @@ class EditProfileViewModel(
     var isDeleteLinkDialogVisible by mutableStateOf(false)
     var isAddLinkDialogVisible by mutableStateOf(false)
 
+    init {
+        getUserProfileResult()
+    }
+
     private var editProfileResult by mutableStateOf<EditUserProfileResult?>(null)
     private var updatePasswordResult by mutableStateOf<UpdatePasswordResult?>(null)
-    var editProfile by mutableStateOf(EditProfileData())
-
-    var editProfileState by mutableStateOf<EditProfileState>(EditProfileState.NotUpdated)
-    var loadingState: LoadingState by mutableStateOf(LoadingState.NotLoaded)
-    var section by mutableStateOf<EditUserProfileSection>(EditUserProfileSection.Main)
 
 
     var links by mutableStateOf(
@@ -103,6 +105,7 @@ class EditProfileViewModel(
     private var instagramLink by mutableStateOf<String?>("")
     private var xLink by mutableStateOf<String?>("")
     var avatar by mutableStateOf<Uri?>(null)
+    var avatarPart by mutableStateOf<MultipartBody.Part?>(null)
 
     // Travel preferences result from backend server
     private var travelPreferencesResult by mutableStateOf<TravelPreferencesResult?>(null)
@@ -272,38 +275,37 @@ class EditProfileViewModel(
     fun handleProcesses(navController: NavController) {
         when (editProfileState) {
             EditProfileState.Error -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
+                editProfileState = EditProfileState.NotUpdated
             }
 
             EditProfileState.Authenticated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
+                editProfileState = EditProfileState.NotUpdated
             }
 
             EditProfileState.Unauthenticated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
                 logoutProcess(navController = navController)
             }
 
             EditProfileState.ProfileLoadingError -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
                 profileReturnProcess(navController = navController)
             }
 
             EditProfileState.Updated -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
+                clearBackendResponse()
                 profileReturnProcess(navController = navController)
             }
 
-            else -> {
-                isBackendResponseVisible = false
-                responseHandler.clearMessage()
-            }
+            EditProfileState.NotUpdated -> {}
         }
+    }
+
+    private fun clearBackendResponse() {
+        isBackendResponseVisible = false
+        responseHandler.clearMessage()
     }
 
     private fun logoutProcess(navController: NavController) {
@@ -316,8 +318,7 @@ class EditProfileViewModel(
     }
 
     fun handleLoadingState() {
-        isProgressIndicatorVisible =
-            loadingState == LoadingState.Loading
+        isProgressIndicatorVisible = loadingState == LoadingState.Loading
     }
 
     private fun getUserProfileResult() {
@@ -330,6 +331,7 @@ class EditProfileViewModel(
                     if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
                         editProfile.name = result.name
                         editProfile.id = result.id
+                        editProfile.avatarUrl = result.avatar
                         editProfile.email = sessionManager.getUserEmail()
                         editProfile.bio = result.bio
                         userTravelPreferences = result.travelPreferences ?: emptyList()
@@ -431,18 +433,36 @@ class EditProfileViewModel(
         val token = sessionManager.getToken()
         viewModelScope.launch {
             try {
-                val request = EditUserProfileRequest(
-                    avatar = "",
-                    bio = editProfile.bio,
-                    email = editProfile.email,
-                    name = editProfile.name,
-                    facebookLink = links[0].link,
-                    instagramLink = links[1].link,
-                    xLink = links[2].link,
-                    travelPreferences = prepareTravelPrefToSend()
+                val email = editProfile.email!!.toRequestBody("text/plain".toMediaTypeOrNull())
+                val name = RequestBody.create("text/plain".toMediaTypeOrNull(), editProfile.name!!)
+                val bio = RequestBody.create("text/plain".toMediaTypeOrNull(), editProfile.bio!!)
+                val facebookLink =
+                    RequestBody.create("text/plain".toMediaTypeOrNull(), links[0].link)
+                val instagramLink =
+                    RequestBody.create("text/plain".toMediaTypeOrNull(), links[1].link)
+                val xLink = RequestBody.create("text/plain".toMediaTypeOrNull(), links[2].link)
+
+                val travelPreferencesMap = prepareTravelPrefToSend().mapIndexed { index, value ->
+                    "travel_preferences[$index]" to RequestBody.create(
+                        "text/plain".toMediaTypeOrNull(),
+                        value.toString()
+                    )
+                }.toMap()
+
+                val result = repository.editUserProfile(
+                    token = token,
+                    id = sessionManager.getUserId()!!,
+                    email = email,
+                    name = name,
+                    avatar = avatarPart?.takeIf { it.body.contentLength() > 0 },
+                    facebookLink = facebookLink,
+                    instagramLink = instagramLink,
+                    xLink = xLink,
+                    bio = bio,
+                    travelPreferences = travelPreferencesMap
                 )
-                val result =
-                    repository.editUserProfile(token, sessionManager.getUserId()!!, request)
+
+
                 if (result != null) {
                     editProfileResult = result
                     if (result.resultCode == 200 && (result.id != null) && (result.name != null)) {
@@ -453,25 +473,24 @@ class EditProfileViewModel(
                         userTravelPreferences =
                             (result.travelPreferences ?: emptyList()) as List<TravelPreference?>?
                         linksInit(result.facebookLink, result.instagramLink, result.xLink)
-                        val backendResponse =
-                            BackendResponse(message = " Profile updated successfully.")
-                        processUpdatedState(backendResponse)
+                        processUpdatedState(BackendResponse(message = "Profile updated successfully."))
                     } else if (result.resultCode == 401 && result.message != null) {
-                        val backendResponse = BackendResponse(message = result.message)
-                        processUnauthenticatedState(backendResponse)
+                        processUnauthenticatedState(BackendResponse(message = result.message))
                     } else {
-                        val backendResponse =
-                            BackendResponse(message = result.message, errors = listOfNotNull(
-                                result.errors?.name?.joinToString(separator = ", "),
-                                result.errors?.email?.joinToString(separator = ", "),
-                                result.errors?.avatar?.joinToString(separator = ", ")
-                            ).flatMap { it.split(", ") })
-                        processErrorState(backendResponse)
+                        processErrorState(
+                            BackendResponse(
+                                message = result.message,
+                                errors = listOfNotNull(
+                                    result.errors?.name?.joinToString(separator = ", "),
+                                    result.errors?.email?.joinToString(separator = ", "),
+                                    result.errors?.avatar?.joinToString(separator = ", ")
+                                ).flatMap { it.split(", ") }
+                            )
+                        )
                     }
                 }
             } catch (e: Exception) {
-                val backendResponse = BackendResponse(message = e.message)
-                processErrorState(backendResponse)
+                processErrorState(BackendResponse(message = e.message))
             }
             loadingState = LoadingState.Loaded
         }

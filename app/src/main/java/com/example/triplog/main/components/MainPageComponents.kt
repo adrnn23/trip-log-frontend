@@ -7,15 +7,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.triplog.main.presentation.MainPageViewModel
 
 @Composable
-fun MainPageScreenComponent(viewModel: MainPageViewModel) {
+fun MainPageScreenComponent(navController: NavController, viewModel: MainPageViewModel) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.padding(8.dp)
     ) {
-        TravelPosts(viewModel)
+        TravelPosts(navController, viewModel)
     }
 }

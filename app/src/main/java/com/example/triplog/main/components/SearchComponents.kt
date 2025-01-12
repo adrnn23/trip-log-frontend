@@ -1,13 +1,14 @@
 package com.example.triplog.main.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,19 +19,29 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -46,9 +58,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.triplog.R
+import com.example.triplog.main.data.SearchFilters
 import com.example.triplog.main.data.SearchProfilesResult
+import com.example.triplog.main.data.TimelineResult
+import com.example.triplog.main.data.TimelineResult.TimelineTravel
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.main.presentation.MainPageViewModel
 
@@ -56,12 +72,15 @@ import com.example.triplog.main.presentation.MainPageViewModel
 @Composable
 fun MainPageSearchBar(viewModel: MainPageViewModel) {
     var isActive by remember { mutableStateOf(false) }
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     SearchBar(
         query = viewModel.query,
         onQueryChange = { viewModel.query = it },
         onSearch = {
-            viewModel.getSearchProfilesResult(viewModel.currentPage)
+            if (viewModel.selectedFilters.searchType == "Users") {
+                viewModel.searchProfiles(viewModel.searchedProfilesCurrentPage)
+            }
             isActive = false
         },
         active = isActive,
@@ -74,12 +93,20 @@ fun MainPageSearchBar(viewModel: MainPageViewModel) {
             )
         },
         trailingIcon = {
-            if (viewModel.query.isNotEmpty()) {
-                IconButton(onClick = { viewModel.query = "" }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { showBottomSheet = true }) {
                     Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear Query"
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filters"
                     )
+                }
+                if (viewModel.query.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.query = "" }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear query"
+                        )
+                    }
                 }
             }
         },
@@ -87,32 +114,283 @@ fun MainPageSearchBar(viewModel: MainPageViewModel) {
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
     ) {
-        Text("Start typing to search...", style = TextStyle(fontSize = 16.sp))
+        Text(
+            text = "Search with filters...",
+            style = TextStyle(fontSize = 16.sp)
+        )
     }
-}
 
-@Composable
-fun SearchResultsSection(viewModel: MainPageViewModel, navController: NavController) {
-    LazyColumn {
-        items(viewModel.searchedProfilesList ?: emptyList()) { profile ->
-            UserItem(
-                profile,
-                onClickReject = {
-                    profile.receivedRequestId?.let { viewModel.rejectFriendRequest(it) }
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = rememberModalBottomSheetState(
+                skipPartiallyExpanded = false
+            )
+        ) {
+            SearchFiltersContent(
+                filters = viewModel.selectedFilters,
+                onFiltersChanged = { updatedFilters -> viewModel.selectedFilters = updatedFilters },
+                onClose = { showBottomSheet = false },
+                searchedTravelsClear = {
+                    viewModel.searchedTravels = emptyList<TimelineTravel>()
                 },
-                onClickAccept = {
-                    profile.receivedRequestId?.let { viewModel.acceptFriendRequest(it) }
+                searchedProfilesClear = {
+                    viewModel.searchedProfiles = emptyList<SearchProfilesResult.Data>()
                 },
-                onClickSendInvitation = {
-                    profile.id?.let { viewModel.sendFriendRequest(it) }
-                },
-                onClick = {
-                    navController.navigate("${Screen.ProfileScreen.destination}/${profile.id}")
+                onApplySearchTravels = {
+                    if (viewModel.selectedFilters.searchType == "Travels") {
+                        viewModel.searchTravels(viewModel.searchedTravelsCurrentPage)
+                    }
                 }
             )
         }
     }
 }
+
+
+@Composable
+fun SearchResultsSection(viewModel: MainPageViewModel, navController: NavController) {
+    when (viewModel.selectedFilters.searchType) {
+        "Users" -> {
+            LazyColumn {
+                items(viewModel.searchedProfiles ?: emptyList()) { profile ->
+                    UserItem(
+                        profile,
+                        onClickReject = {
+                            profile.receivedRequestId?.let { viewModel.rejectFriendRequest(it) }
+                        },
+                        onClickAccept = {
+                            profile.receivedRequestId?.let { viewModel.acceptFriendRequest(it) }
+                        },
+                        onClickSendInvitation = {
+                            profile.id?.let { viewModel.sendFriendRequest(it) }
+                        },
+                        onClick = {
+                            navController.navigate("${Screen.ProfileScreen.destination}/${profile.id}")
+                        }
+                    )
+                }
+            }
+        }
+
+        "Travels" -> {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 64.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(viewModel.searchedTravels) { travel ->
+                    SearchedTravelItem(travel, onClick = {
+                        viewModel.travelOverview.id = travel.travel?.id
+                        viewModel.showTravel()
+                    })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchedTravelItem(travel: TimelineResult.TimelineTravel, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(8.dp)
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(RoundedCornerShape(8.dp))
+        ) {
+            if (travel.travel?.image?.url?.isNotEmpty() == true) {
+                AsyncImage(
+                    model = travel.travel.image.url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (travel.travel?.image?.url?.isNotEmpty() == true) {
+                Text(
+                    text = stringResource(R.string.noPhotoAvailable),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            travel.travel?.name?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Text(
+                text = "${travel.travel?.from} - ${travel.travel?.to}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+
+            travel.travel?.description?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchFiltersContent(
+    filters: SearchFilters,
+    onFiltersChanged: (SearchFilters) -> Unit,
+    onClose: () -> Unit,
+    searchedProfilesClear: () -> Unit,
+    searchedTravelsClear: () -> Unit,
+    onApplySearchTravels: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.searchFilters),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Divider()
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = stringResource(R.string.searchType),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(end = 16.dp)
+            )
+            DropdownMenuFilter(
+                options = listOf("Users", "Travels"),
+                selectedOption = filters.searchType,
+                onOptionSelected = {
+                    onFiltersChanged(filters.copy(searchType = it))
+                    when (filters.searchType) {
+                        "Travels" -> searchedProfilesClear()
+                        "Users" -> searchedTravelsClear()
+                    }
+                }
+            )
+        }
+
+        if (filters.searchType == "Travels") {
+            OutlinedTextField(
+                value = filters.dateFrom ?: "",
+                onValueChange = { onFiltersChanged(filters.copy(dateFrom = it)) },
+                label = { Text("Date From") },
+                placeholder = { Text("YYYY-MM-DD") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = filters.dateTo ?: "",
+                onValueChange = { onFiltersChanged(filters.copy(dateTo = it)) },
+                label = { Text("Date To") },
+                placeholder = { Text("YYYY-MM-DD") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            DropdownMenuFilter(
+                options = listOf("Ascending", "Descending"),
+                selectedOption = filters.sortingDirection ?: "Ascending",
+                onOptionSelected = { onFiltersChanged(filters.copy(sortingDirection = it)) }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onClose) {
+                Text(stringResource(R.string.cancel))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = onClose,
+                colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Text(
+                    stringResource(R.string.apply),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.clickable {
+                        onApplySearchTravels()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DropdownMenuFilter(
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .width(200.dp)
+            .wrapContentSize(Alignment.CenterEnd)
+    ) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(selectedOption)
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun UserItem(
@@ -143,11 +421,6 @@ fun UserItem(
                     .size(96.dp)
                     .clickable { onClick() }
                     .clip(RoundedCornerShape(24.dp))
-                    .border(
-                        2.dp,
-                        MaterialTheme.colorScheme.primaryContainer,
-                        RoundedCornerShape(24.dp)
-                    )
             )
             Spacer(modifier = Modifier.width(8.dp))
             Column(

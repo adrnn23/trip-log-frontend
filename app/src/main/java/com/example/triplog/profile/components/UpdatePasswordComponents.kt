@@ -82,7 +82,7 @@ fun EditPasswordComponent(onClick: () -> Unit) {
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
-        Text(text = "********", style = MaterialTheme.typography.bodyMedium)
+        Text(text = "**********", style = MaterialTheme.typography.bodyLarge)
         ButtonComponent(
             R.string.updateYourPassword,
             modifier = Modifier.width(200.dp),

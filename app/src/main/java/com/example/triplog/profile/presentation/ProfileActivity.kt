@@ -30,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.triplog.R
 import com.example.triplog.main.navigation.ApplicationBottomBar
@@ -44,14 +43,15 @@ import com.example.triplog.profile.presentation.sections.ProfileSection
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun ProfileScreen(
+    viewModel: ProfileViewModel,
     navController: NavController,
-    id: Int?
 ) {
-    val viewModel: ProfileViewModel =
-        viewModel(factory = ProfileViewModel.provideFactory())
-
+    /*
+    * Fetches user's profile data every time when ProfileScreen is composed.
+    * After editing profile updates profile's data.
+    * */
     LaunchedEffect(key1 = Unit) {
-        viewModel.initParams(id)
+        viewModel.getUserProfileResult()
     }
 
     LaunchedEffect(viewModel.loadingState, viewModel.profileState) {
@@ -120,7 +120,7 @@ fun ProfileScreen(
                 Column {
                     viewModel.responseHandler.message.value.let {
                         Text(
-                            text = it ?: "Operation without message from server",
+                            text = it ?: stringResource(R.string.operationWithoutMessage),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -209,19 +209,14 @@ fun ProfileTopBar(viewModel: ProfileViewModel) {
         UserProfileSection.FriendsList -> {
             TopApplicationBar(
                 title = { Text(stringResource(R.string.friends)) },
-                onClick = {
-                    viewModel.profileSection =
-                        UserProfileSection.Main
-                })
+                onClick = { viewModel.profileSection = UserProfileSection.Main }
+            )
         }
 
         UserProfileSection.FriendsRequests -> {
             TopApplicationBar(
                 title = { Text(stringResource(R.string.friendsRequests)) },
-                onClick = {
-                    viewModel.profileSection =
-                        UserProfileSection.Main
-                }
+                onClick = { viewModel.profileSection = UserProfileSection.Main }
             )
         }
     }
@@ -233,6 +228,7 @@ fun ProfileBottomBar(navController: NavController, viewModel: ProfileViewModel) 
         block = viewModel.isProgressIndicatorVisible,
         index = 2,
         goToProfile = {
+            navController.popBackStack()
             navController.navigate("${Screen.ProfileScreen.destination}/${viewModel.sessionManager.getUserId()}")
         },
         goToMainPage = {

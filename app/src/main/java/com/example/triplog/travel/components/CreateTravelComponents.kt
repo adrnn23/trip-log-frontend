@@ -29,9 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.TravelExplore
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -39,7 +37,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -64,14 +61,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.triplog.R
 import com.example.triplog.authorization.login.components.LinearIndicator
 import com.example.triplog.profile.components.ChangeButton
+import com.example.triplog.profile.components.uriToMultipart
 import com.example.triplog.travel.data.PlaceData
-import com.example.triplog.travel.presentation.SharedTravelViewModel
 import com.example.triplog.travel.presentation.travelForm.TravelFormSection
 import com.example.triplog.travel.presentation.travelForm.TravelFormViewModel
 import java.text.SimpleDateFormat
@@ -156,7 +153,7 @@ fun TravelInformationComponent(
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Text(
-                text = viewModel.travel.startDate ?: "Start date",
+                text = viewModel.travel.startDate ?: stringResource(R.string.startDate),
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(Modifier.width(4.dp))
@@ -164,7 +161,7 @@ fun TravelInformationComponent(
             Spacer(Modifier.width(4.dp))
 
             Text(
-                text = viewModel.travel.endDate ?: "End date",
+                text = viewModel.travel.endDate ?: stringResource(R.string.endDate),
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -181,10 +178,15 @@ fun TravelInformationComponent(
 fun TravelPhotoComponent(
     viewModel: TravelFormViewModel
 ) {
+    val context = LocalContext.current
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-            viewModel.travelImage = uri
+            uri?.let {
+                viewModel.travelImage = uri
+                viewModel.travel.imagePart = uriToMultipart(context, uri, "image")
+            }
         }
+
     val showPhoto = remember { mutableStateOf(false) }
 
     Column(
@@ -228,6 +230,13 @@ fun TravelPhotoComponent(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
+                )
+            } else if (viewModel.travel.imageUrl != null) {
+                AsyncImage(
+                    model = viewModel.travel.imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             } else {
                 Text(
@@ -344,7 +353,7 @@ fun AddPlacesComponent(
             )
         } else {
             Text(
-                text = "No places added yet",
+                text = stringResource(R.string.noPlacesAddedYet),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.Start)
@@ -378,15 +387,8 @@ fun TravelPlacesList(
                             viewModel.removePlaceWithLoading(place, context)
                         },
                         onEdit = {
-                            val placeToEdit = PlaceData(
-                                place?.name,
-                                place?.description,
-                                place?.image,
-                                place?.category,
-                                place?.point
-                            )
-                            viewModel.place = placeToEdit
-                            viewModel.placeImage = placeToEdit.image
+                            viewModel.place = place!!
+                            viewModel.placeImage = place.image
                             viewModel.editedPlaceIndex = viewModel.travelPlaces.indexOf(place)
                             viewModel.section = TravelFormSection.PlaceForm
                         }
@@ -408,7 +410,7 @@ fun EditTravelNameComponent(viewModel: TravelFormViewModel) {
     ) {
         TravelPlaceNameInput(
             label = R.string.travelName,
-            value = viewModel.travelNameTemp,
+            value = viewModel.travelNameTemp ?: "",
             onValueChanged = { viewModel.travelNameTemp = it },
             imageVector = Icons.Default.TravelExplore,
             modifier = Modifier
@@ -431,7 +433,7 @@ fun EditTravelDescriptionComponent(viewModel: TravelFormViewModel) {
         TravelPlaceDescriptionInput(
             R.string.travelDescription,
             imageVector = Icons.Default.Description,
-            viewModel.travelDescriptionTemp,
+            viewModel.travelDescriptionTemp ?: "",
             enabled = enabled,
             characterLimit = 512,
             modifier = Modifier
@@ -482,7 +484,7 @@ fun TravelPlaceDescriptionInput(
         Text(
             text = if (characterLimit - value.length >= 0) {
                 "${characterLimit - value.length} characters remaining"
-            } else "Too many characters!",
+            } else stringResource(R.string.tooManyCharacters),
             style = TextStyle(fontSize = 10.sp),
             modifier = Modifier
                 .padding(top = 4.dp)
@@ -592,7 +594,7 @@ fun EditTravelDateComponent(viewModel: TravelFormViewModel) {
                 .padding(12.dp)
         ) {
             Text(
-                text = stringResource(R.string.startDate),
+                text = stringResource(R.string.travelStartDate),
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -629,7 +631,7 @@ fun EditTravelDateComponent(viewModel: TravelFormViewModel) {
                 .padding(12.dp)
         ) {
             Text(
-                text = stringResource(R.string.endDate),
+                text = stringResource(R.string.travelEndDate),
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -688,44 +690,3 @@ fun TravelPlaceNameInput(
     )
 }
 
-@Composable
-fun FavoriteTravelComponent(viewModel: TravelFormViewModel) {
-    var isFavorite by remember { mutableStateOf(viewModel.travel.favourite ?: false) }
-
-    Column(
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = 2.dp,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .padding(16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = stringResource(R.string.markAsFavorite),
-                style = MaterialTheme.typography.titleMedium
-            )
-            IconToggleButton(
-                checked = isFavorite,
-                onCheckedChange = { checked ->
-                    isFavorite = checked
-                    viewModel.updateFavoriteStatus(checked)
-                }
-            ) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}

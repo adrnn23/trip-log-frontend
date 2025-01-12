@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 fun RegistrationActivityButton(
     @StringRes text: Int,
     containerColor: Color,
+    modifier: Modifier,
     onClick: () -> Unit
 ) {
     Button(
@@ -36,7 +37,7 @@ fun RegistrationActivityButton(
         onClick = {
             onClick()
         },
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Text(
             color = MaterialTheme.colorScheme.onPrimaryContainer,

@@ -3,6 +3,7 @@ activityComposeVersion = "1.6.1"
 activityKtx = "1.9.3"
 agp = "8.4.0"
 android = "11.7.1"
+androidxUiTestJunit4Version = "<latest_version>"
 autofill = "2.5.0"
 coilCompose = "2.2.2"
 converterGson = "2.9.0"
@@ -21,6 +22,8 @@ composeBom = "2023.08.00"
 lifecycleViewmodelCompose = "2.8.7"
 mapsCompose = "11.7.1"
 materialIconsExtended = "1.6.8"
+mockitoAndroid = "5.5.0"
+mockkAndroid = "1.13.7"
 moshi = "1.15.1"
 moshiKotlin = "1.15.1"
 moshiKotlinCodegen = "1.15.1"
@@ -36,6 +39,7 @@ foundationLayoutAndroid = "1.6.8"
 android = { module = "com.mapbox.maps:android", version.ref = "android" }
 androidx-activity-compose-v161 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
+androidx-compose-ui-ui-test-junit43 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "androidxUiTestJunit4Version" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
@@ -68,6 +72,8 @@ leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", ve
 mapbox-search-android = { module = "com.mapbox.search:mapbox-search-android", version.ref = "autofill" }
 mapbox-search-android-ui = { module = "com.mapbox.search:mapbox-search-android-ui", version.ref = "autofill" }
 maps-compose = { module = "com.mapbox.extension:maps-compose", version.ref = "mapsCompose" }
+mockito-android = { module = "org.mockito:mockito-android", version.ref = "mockitoAndroid" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockkAndroid" }
 moshi = { module = "com.squareup.moshi:moshi", version.ref = "moshi" }
 moshi-kotlin-codegen = { module = "com.squareup.moshi:moshi-kotlin-codegen", version.ref = "moshiKotlinCodegen" }
 moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshiKotlin" }
@@ -75,6 +81,7 @@ offline = { module = "com.mapbox.search:offline", version.ref = "autofill" }
 place-autocomplete = { module = "com.mapbox.search:place-autocomplete", version.ref = "autofill" }
 retrofit2-converter-moshi = { module = "com.squareup.retrofit2:converter-moshi", version.ref = "converterMoshi" }
 retrofit2-retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "androidxUiTestJunit4Version" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

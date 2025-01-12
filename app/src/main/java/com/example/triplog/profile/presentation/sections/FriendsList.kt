@@ -1,9 +1,9 @@
 package com.example.triplog.profile.presentation.sections
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,19 +17,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +45,6 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.triplog.R
 import com.example.triplog.main.navigation.Screen
-import com.example.triplog.profile.components.DeleteFriendButton
 import com.example.triplog.profile.data.profile.GetFriendsListResult
 import com.example.triplog.profile.presentation.ProfileViewModel
 
@@ -51,7 +55,7 @@ fun FriendsListSection(
     navController: NavController
 ) {
     val friendToDelete = remember { mutableStateOf<Int?>(null) }
-    var context = LocalContext.current
+    val context = LocalContext.current
 
     LazyColumn(
         modifier = Modifier
@@ -70,11 +74,7 @@ fun FriendsListSection(
                         item?.id?.let { friendToDelete.value = it }
                     },
                     onClick = { navController.navigate("${Screen.ProfileScreen.destination}/${item?.id}") })
-                Divider(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Spacer(modifier = Modifier.padding(vertical = 6.dp))
             }
         }
     }
@@ -132,9 +132,22 @@ fun FriendsListSection(
     }
 }
 
+data class FriendOptions(
+    val text: String,
+    val icon: ImageVector,
+    val function: () -> Unit
+)
 
 @Composable
 fun FriendItem(data: GetFriendsListResult.Data?, onClick: () -> Unit, onClickDelete: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf(
+        FriendOptions(
+            stringResource(R.string.deleteFriend),
+            Icons.Default.PersonRemove,
+            function = { onClickDelete() })
+    )
+
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -149,16 +162,9 @@ fun FriendItem(data: GetFriendsListResult.Data?, onClick: () -> Unit, onClickDel
             ),
             contentDescription = null,
             modifier = Modifier
-                .size(96.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .border(
-                    2.dp,
-                    MaterialTheme.colorScheme.primaryContainer,
-                    RoundedCornerShape(24.dp)
-                )
+                .size(80.dp)
+                .clip(RoundedCornerShape(20.dp))
         )
-
-
         Spacer(modifier = Modifier.width(8.dp))
         Column(
             horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.Center,
@@ -167,6 +173,7 @@ fun FriendItem(data: GetFriendsListResult.Data?, onClick: () -> Unit, onClickDel
         ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 data?.name?.let {
@@ -176,8 +183,30 @@ fun FriendItem(data: GetFriendsListResult.Data?, onClick: () -> Unit, onClickDel
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { onClick() })
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                DeleteFriendButton(onClick = onClickDelete)
+                Spacer(modifier = Modifier.width(8.dp))
+                Box {
+                    Icon(
+                        imageVector = Icons.Default.MoreHoriz,
+                        modifier = Modifier.clickable { expanded = true },
+                        contentDescription = null
+                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        options.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.text) },
+                                onClick = {
+                                    expanded = false
+                                    option.function()
+                                },
+                                leadingIcon = { Icon(option.icon, contentDescription = null) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             data?.bio?.let {

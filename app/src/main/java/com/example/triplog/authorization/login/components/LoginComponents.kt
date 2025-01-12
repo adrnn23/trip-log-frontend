@@ -67,7 +67,8 @@ fun InformationDialog(
 fun LoginActivityButton(
     @StringRes text: Int,
     containerColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier
 ) {
     Button(
         shape = RoundedCornerShape(20.dp),
@@ -75,7 +76,7 @@ fun LoginActivityButton(
         onClick = {
             onClick()
         },
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Text(
             color = MaterialTheme.colorScheme.onPrimaryContainer,

@@ -26,6 +26,14 @@ interface MapboxApiService {
         @Path("marker") marker: String,
         @Query("access_token") accessToken: String
     ): Response<ResponseBody>
+
+    @GET("geocoding/v5/mapbox.places/{longitude},{latitude}.json")
+    suspend fun reverseSearchPlace(
+        @Path("longitude") longitude: Double,
+        @Path("latitude") latitude: Double,
+        @Query("access_token") accessToken: String,
+        @Query("limit") limit: Int = 1
+    ): Response<GeocodingSearchResponse>
 }
 
 class MapboxClient {

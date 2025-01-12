@@ -1,12 +1,12 @@
 package com.example.triplog.profile.components
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,23 +23,18 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EditCalendar
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,71 +43,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.triplog.R
 import com.example.triplog.main.navigation.Screen
 import com.example.triplog.profile.data.LinkData
-import com.example.triplog.profile.data.TravelNavigationElementData
 import com.example.triplog.profile.data.profile.UserProfileResult
 import com.example.triplog.profile.presentation.ProfileViewModel
 import com.example.triplog.profile.presentation.UserProfileSection
 
 @Composable
-fun TravelNavigationElement(icon: ImageVector, @StringRes label: Int, onClick: () -> Unit) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .clickable { onClick() }
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(28.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                stringResource(id = label),
-                fontSize = 14.sp
-            )
-        }
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            modifier = Modifier
-                .size(28.dp)
-        )
-    }
-    Divider(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        thickness = 1.dp
-    )
-}
-
-@Composable
 fun ProfileUsername(username: String?) {
     Text(
         text = username.toString(),
-        fontSize = 18.sp
+        style = MaterialTheme.typography.titleLarge
     )
 }
 
@@ -124,7 +79,10 @@ fun FriendsList(friendCount: Int, onClick: () -> Unit, modifier: Modifier) {
         modifier = modifier
             .height(48.dp)
             .clickable { onClick() }
-            .background(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp))
+            .background(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(12.dp)
+            )
             .padding(horizontal = 16.dp)
     ) {
         Icon(
@@ -151,71 +109,125 @@ fun FriendsList(friendCount: Int, onClick: () -> Unit, modifier: Modifier) {
 
 
 @Composable
-fun TravelNavigation(navController: NavController) {
-    val tripsNavigationElements =
-        listOf(
-            TravelNavigationElementData(
-                Icons.Filled.TravelExplore,
-                R.string.travels
-            ) { navController.navigate(Screen.TravelGalleryScreen.destination) },
-            TravelNavigationElementData(Icons.Filled.Favorite, R.string.favorite) { },
-            TravelNavigationElementData(Icons.Filled.EditCalendar, R.string.planned) { },
-            TravelNavigationElementData(Icons.AutoMirrored.Filled.Notes, R.string.travelAdvices) { }
-        )
-    Column(
+fun TravelNavigation(id: Int?, navController: NavController) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(4.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryContainer
+                    )
+                )
+            )
+            .clickable {
+                navController.navigate("${Screen.TravelGalleryScreen.destination}/${id}")
+            }
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Divider(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            thickness = 1.dp
-        )
-        tripsNavigationElements.forEach { item ->
-            TravelNavigationElement(item.icon, item.label) { item.navigate() }
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.TravelExplore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(end = 16.dp)
+            )
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text(
+                    text = stringResource(id = R.string.travels),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Text(
+                    text = stringResource(id = R.string.exploreTravels),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                    )
+                )
+            }
         }
     }
 }
 
 @Composable
 fun TravelPreferencesComponent(viewModel: ProfileViewModel, modifier: Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
     ) {
-        TitleComponent(
-            R.string.travelPreferences,
-            fontSize = 16.sp,
+        Text(
+            stringResource(R.string.travelPreferences),
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
         )
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(4.dp))
-            if (viewModel.userProfile.travelPreferences != null) {
-                if (viewModel.userProfile.travelPreferences!!.isNotEmpty()) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(42.dp, 108.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(viewModel.userProfile.travelPreferences!!) { item ->
-                            if (item != null)
-                                TravelPreferenceCard(item)
+
+            val preferences = viewModel.userProfile.travelPreferences
+            if (!preferences.isNullOrEmpty()) {
+                val visibleItems = if (expanded) preferences else preferences.take(3)
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .heightIn(0.dp, if (expanded) 300.dp else 100.dp)
+                        .fillMaxWidth()
+                        .animateContentSize(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(visibleItems) { item ->
+                        if (item != null) {
+                            TravelPreferenceCard(item)
                         }
                     }
-                } else {
-                    Text(text = stringResource(R.string.addTravelPreferences), fontSize = 12.sp)
                 }
+
+                if (preferences.size > 3) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TextButton(
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    ) {
+                        Text(
+                            text = if (expanded) stringResource(R.string.showLess) else stringResource(
+                                R.string.showMore
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.profileWithoutPreferences),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun ProfileMainInfoComponent(
@@ -233,19 +245,31 @@ fun ProfileMainInfoComponent(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = null,
+            Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .border(
-                        width = 2.dp,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(20.dp)
-                    )
                     .clip(RoundedCornerShape(20.dp))
-            )
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (viewModel.userProfile.avatar?.isNotEmpty() == true) {
+                    AsyncImage(
+                        model = viewModel.userProfile.avatar,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (viewModel.userProfile.username?.isNotEmpty() == true) {
+                    Text(
+                        text = viewModel.userProfile.username?.first().toString(),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.width(16.dp))
+
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.weight(1f)
@@ -253,9 +277,8 @@ fun ProfileMainInfoComponent(
                 ProfileUsername(viewModel.userProfile.username)
                 StatisticCard(
                     stats = listOf(
-                        viewModel.userProfile.tripsCount to "Travels",
-                        viewModel.userProfile.plannedCount to "Planned",
-                        viewModel.userProfile.favoriteCount to "Favorites"
+                        viewModel.userProfile.tripsCount to stringResource(R.string.travels),
+                        viewModel.userProfile.plannedCount to stringResource(R.string.planned),
                     )
                 )
             }
@@ -323,7 +346,7 @@ fun Link(link: LinkData) {
         addStyle(
             SpanStyle(
                 color = MaterialTheme.colorScheme.onSurface,
-                fontStyle = MaterialTheme.typography.bodyMedium.fontStyle,
+                fontStyle = MaterialTheme.typography.bodyLarge.fontStyle,
                 textDecoration = TextDecoration.Underline
             ), 0, link.link.length
         )
@@ -342,7 +365,11 @@ fun Link(link: LinkData) {
         Column(
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(text = link.name, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = link.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
             ClickableText(
                 text = linkString,
                 onClick = {
@@ -366,9 +393,9 @@ fun LinksComponent(list: MutableList<LinkData?>, modifier: Modifier) {
         modifier = modifier
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleComponent(
-                R.string.links,
-                fontSize = 16.sp,
+            Text(
+                stringResource(R.string.links),
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
             )
@@ -404,7 +431,11 @@ fun LinksComponent(list: MutableList<LinkData?>, modifier: Modifier) {
                 }
             }
         } else {
-            Text(text = stringResource(R.string.addLinks), fontSize = 12.sp)
+            Text(
+                text = stringResource(R.string.noLinksAddedYet),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
     }
 }
@@ -433,7 +464,9 @@ fun StatisticCard(stats: List<Pair<Int?, String>>) {
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceAround,
-            modifier = Modifier.padding(8.dp).fillMaxWidth()
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
         ) {
             stats.forEach { (number, label) ->
                 Column(
@@ -441,12 +474,12 @@ fun StatisticCard(stats: List<Pair<Int?, String>>) {
                 ) {
                     Text(
                         text = number.toString(),
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = label,
-                        fontSize = 10.sp
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
@@ -467,9 +500,9 @@ fun AboutMeComponent(bio: String?) {
             .padding(4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TitleComponent(
-                R.string.aboutMe,
-                fontSize = 16.sp,
+            Text(
+                stringResource(R.string.aboutMe),
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
             )
@@ -481,29 +514,38 @@ fun AboutMeComponent(bio: String?) {
                     } else {
                         Icons.Default.KeyboardArrowDown
                     },
-                    contentDescription = null,
+                    contentDescription = "Extend icon",
                     modifier = Modifier
                         .size(24.dp)
                         .clickable { extended = !extended }
                 )
             }
         }
-        if (bio != null) {
+        if (bio != null && bio.isBlank().not()) {
             if (bio.length > 192) {
                 if (!extended) {
                     Column {
-                        Text(text = bio.substring(0, 191) + "...", fontSize = 12.sp)
+                        Text(
+                            text = bio.substring(0, 191) + "...",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                 } else {
                     Column {
-                        Text(text = bio, fontSize = 12.sp)
+                        Text(text = bio, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             } else {
                 Column {
-                    Text(text = bio, fontSize = 12.sp)
+                    Text(text = bio, style = MaterialTheme.typography.bodyLarge)
                 }
             }
+        } else {
+            Text(
+                text = stringResource(R.string.profileWithoutBiography),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
     }
 }
@@ -511,56 +553,39 @@ fun AboutMeComponent(bio: String?) {
 @Composable
 fun TravelPreferenceCard(travelPreference: UserProfileResult.TravelPreference) {
     Card(
-        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.primaryContainer),
-        shape = RoundedCornerShape(5.dp)
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        modifier = Modifier.padding(4.dp)
     ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
             modifier = Modifier
-                .fillMaxSize(1f)
-                .heightIn(32.dp)
-        ) {
-            travelPreference.name?.let {
-                Text(
-                    text = it,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                .fillMaxSize()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                        )
+                    )
                 )
+                .padding(8.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                travelPreference.name?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onPrimary),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-fun DividerComponent() {
-    Spacer(modifier = Modifier.height(8.dp))
-    Divider(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        thickness = 1.dp,
-        modifier = Modifier.fillMaxWidth()
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-}
-
-@Composable
-fun DeleteFriendButton(onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .clickable { onClick() }) {
-        Icon(
-            imageVector = Icons.Default.PersonRemove,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier
-                .size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = stringResource(R.string.deleteFriend),
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            fontSize = 12.sp
-        )
     }
 }
